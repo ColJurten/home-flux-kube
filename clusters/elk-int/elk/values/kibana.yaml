@@ -9,6 +9,11 @@ imagePullPolicy: "IfNotPresent"
 # Point Kibana to Elasticsearch
 elasticsearchHosts: "http://elasticsearch-master:9200"
 
+# Disable certificate mounting (security is disabled on ES)
+createCert: false
+elasticsearchCertificateSecret: ""
+elasticsearchCertificateAuthoritiesFile: ""
+
 # Kibana configuration
 kibanaConfig:
   kibana.yml: |
