@@ -26,7 +26,7 @@ logstashPipeline:
     }
     output {
       elasticsearch {
-        hosts => [ "http://elasticsearch-master:9200" ]
+        hosts => [ "http://elastic-master:9200" ]
         index => "dummy-%{+YYYY.MM.dd}"
       }
     }

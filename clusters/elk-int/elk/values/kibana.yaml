@@ -7,25 +7,18 @@ imageTag: "8.15.0"
 imagePullPolicy: "IfNotPresent"
 
 # Point Kibana to Elasticsearch
-elasticsearchHosts: "http://elasticsearch-master:9200"
+elasticsearchHosts: "elk-inthttp://elastic-master:9200"
 
-# Disable certificate mounting (security is disabled on ES)
-createCert: false
-elasticsearchCertificateSecret: ""
-elasticsearchCertificateAuthoritiesFile: ""
-
-# Disable pre-install job (tries to mount certs)
-automountToken: false
-lifecycle: {}
-
-# Skip encryption key generation (not needed without security)
-secretMounts: []
+# Disable TLS/certificate mounting completely (security is disabled on ES)
+protocol: http
+extraVolumes: []
+extraVolumeMounts: []
 
 # Kibana configuration
 kibanaConfig:
   kibana.yml: |
     server.host: "0.0.0.0"
-    elasticsearch.hosts: ["http://elasticsearch-master:9200"]
+    elasticsearch.hosts: ["elk-inthttp://elastic-master:9200"]
 
 # Service configuration
 service:
