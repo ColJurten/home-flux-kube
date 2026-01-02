@@ -3,15 +3,16 @@ clusterName: "elastic"
 
 # Single node configuration
 replicas: 1
-minimumMasterNodes: 1
-
-# Disable initial master nodes (conflicts with single-node discovery)
-clusterInitialMasterNodes: ""
 
 # Use official Elasticsearch image
 image: "docker.elastic.co/elasticsearch/elasticsearch"
 imageTag: "8.15.0"
 imagePullPolicy: "IfNotPresent"
+
+# Set single-node discovery via environment variable (overrides chart defaults)
+extraEnvs:
+- name: discovery.type
+  value: single-node
 
 # Disable security for dev environment
 esConfig:
@@ -20,12 +21,6 @@ esConfig:
     xpack.security.enrollment.enabled: false
     xpack.security.http.ssl.enabled: false
     xpack.security.transport.ssl.enabled: false
-    discovery.type: single-node
-
-# Extra environment variables to ensure single-node mode
-extraEnvs:
-- name: cluster.initial_master_nodes
-  value: ""
 
 # Keep resources low for local clusters
 resources:
