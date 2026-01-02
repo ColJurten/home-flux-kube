@@ -11,3 +11,13 @@ spec:
     kind: GitRepository
     name: flux-system
     namespace: flux-system
+  comfigMapGenerator:
+  - name: elasticsearch-values
+    files:
+    - values.yaml=./clusters/my-cluster/elk-int/elk/values/elastic.yaml
+  - name: kibana-values
+    files:
+    - values.yaml=./clusters/my-cluster/elk-int/elk/values/kibana.yaml
+  - name: logstash-values
+    files:
+    - values.yaml=./clusters/my-cluster/elk-int/elk/values/logstash.yaml

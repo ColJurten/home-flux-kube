@@ -16,7 +16,6 @@ spec:
   valuesFrom:
   - kind: ConfigMap
     name: elasticsearch-values
-    valuesKey: values.yaml
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
@@ -39,7 +38,6 @@ spec:
   valuesFrom:
   - kind: ConfigMap
     name: kibana-values
-    valuesKey: values.yaml
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
@@ -62,4 +60,3 @@ spec:
   valuesFrom:
   - kind: ConfigMap
     name: logstash-values
-    valuesKey: values.yaml

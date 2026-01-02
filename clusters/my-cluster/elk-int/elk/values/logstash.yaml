@@ -1,70 +1,63 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: logstash-values
-  namespace: elk-int
-data:
-  values.yaml: |
-    # Official Elastic Logstash chart
-    replicas: 1
+# Official Elastic Logstash chart
+replicas: 1
 
-    # Use official Logstash image
-    image: "docker.elastic.co/logstash/logstash"
-    imageTag: "8.15.0"
-    imagePullPolicy: "IfNotPresent"
+# Use official Logstash image
+image: "docker.elastic.co/logstash/logstash"
+imageTag: "8.15.0"
+imagePullPolicy: "IfNotPresent"
 
-    # Logstash pipeline configuration
-    logstashPipeline:
-      logstash.conf: |
-        input {
-          beats {
-            port => 5044
-          }
-        }
-        filter {
-          json {
-            source => "message"
-            target => "eventjson"
-            skip_on_invalid_json => true
-          }
-          if [eventjson][@timestamp] {
-            date { match => [ "[eventjson][@timestamp]", "ISO8601" ] }
-          }
-        }
-        output {
-          elasticsearch {
-            hosts => [ "http://elasticsearch-master:9200" ]
-            index => "dummy-%{+YYYY.MM.dd}"
-          }
-        }
+# Logstash pipeline configuration
+logstashPipeline:
+  logstash.conf: |
+    input {
+      beats {
+        port => 5044
+      }
+    }
+    filter {
+      json {
+        source => "message"
+        target => "eventjson"
+        skip_on_invalid_json => true
+      }
+      if [eventjson][@timestamp] {
+        date { match => [ "[eventjson][@timestamp]", "ISO8601" ] }
+      }
+    }
+    output {
+      elasticsearch {
+        hosts => [ "http://elasticsearch-master:9200" ]
+        index => "dummy-%{+YYYY.MM.dd}"
+      }
+    }
 
-    # Logstash config
-    logstashConfig:
-      logstash.yml: |
-        http.host: "0.0.0.0"
-        xpack.monitoring.enabled: false
+# Logstash config
+logstashConfig:
+  logstash.yml: |
+    http.host: "0.0.0.0"
+    xpack.monitoring.enabled: false
 
-    # Service configuration
-    service:
-      type: ClusterIP
-      ports:
-        - name: beats
-          port: 5044
-          protocol: TCP
-          targetPort: 5044
-        - name: http
-          port: 9600
-          protocol: TCP
-          targetPort: 9600
+# Service configuration
+service:
+  type: ClusterIP
+  ports:
+  - name: beats
+    port: 5044
+    protocol: TCP
+    targetPort: 5044
+  - name: http
+    port: 9600
+    protocol: TCP
+    targetPort: 9600
 
-    # Dev-friendly resources
-    resources:
-      requests:
-        cpu: "100m"
-        memory: "256Mi"
-      limits:
-        memory: "768Mi"
+# Dev-friendly resources
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    memory: "768Mi"
 
-    # Persistence
-    persistence:
-      enabled: false
+# Persistence
+persistence:
+  enabled: false
