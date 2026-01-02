@@ -9,16 +9,15 @@ image: "docker.elastic.co/elasticsearch/elasticsearch"
 imageTag: "8.15.0"
 imagePullPolicy: "IfNotPresent"
 
-# Set single-node discovery via environment variable (overrides chart defaults)
+# Set security disabled via environment variable (ensures it's set before config is read)
 extraEnvs:
-- name: discovery.type
-  value: single-node
 - name: xpack.security.enabled
   value: "false"
 
 # Disable security for dev environment
 esConfig:
   elasticsearch.yml: |
+    discovery.type: single-node
     xpack.security.enabled: false
     xpack.security.enrollment.enabled: false
     xpack.security.http.ssl.enabled: false
@@ -29,12 +28,9 @@ createCert: false
 secret:
   enabled: false
 
-# Clear discovery seed hosts for true single-node operation
-discovery:
-  type: single-node
-
-# Disable cluster.initial_master_nodes (incompatible with single-node)
-clusterInitialMasterNodes: []
+# Disable master node discovery settings for single-node
+masterService: ""
+clusterInitialMasterNodes: ""
 
 # Keep resources low for local clusters
 resources:
