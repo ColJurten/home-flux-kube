@@ -52,3 +52,17 @@ antiAffinity: "soft"
 
 # Protocol (http since security is disabled)
 protocol: http
+
+# Override readiness probe - default requires ELASTIC_PASSWORD which we don't use
+readinessProbe:
+  exec:
+    command:
+    - bash
+    - -c
+    - |
+      set -e
+      curl -s --fail http://localhost:9200/_cluster/health?local=true
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
