@@ -15,6 +15,9 @@ elasticsearchCertificateSecret: ""
 elasticsearchCertificateAuthoritiesFile: ""
 elasticsearchCredentialSecret: ""
 
+# Disable secret mounts (prevents mounting non-existent elasticsearch-certs)
+secretMounts: []
+
 protocol: http
 
 # Kibana configuration
