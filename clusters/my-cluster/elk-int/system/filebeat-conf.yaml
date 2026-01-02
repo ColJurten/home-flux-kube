@@ -61,7 +61,7 @@ data:
               kubernetes.container.name: "filebeat"
 
     output.logstash:
-      hosts: ["logstash.elk-int.svc.cluster.local:5044"]
+      hosts: ["logstash-logstash.elk-int.svc.cluster.local:5044"]
 
     logging.level: info
 ---
@@ -86,7 +86,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
       - name: filebeat
-        image: docker.elastic.co/beats/filebeat:8.13.4
+        image: docker.elastic.co/beats/filebeat:8.15.0
         args: [ "-c", "/etc/filebeat.yml", "-e" ]
         env:
         - name: NODE_NAME

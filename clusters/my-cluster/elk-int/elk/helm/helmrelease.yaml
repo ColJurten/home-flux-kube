@@ -1,0 +1,65 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: elasticsearch
+  namespace: elk-int
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: elasticsearch
+      version: "8.5.1"
+      sourceRef:
+        kind: HelmRepository
+        name: elastic
+        namespace: elk-int
+  valuesFrom:
+  - kind: ConfigMap
+    name: elasticsearch-values
+    valuesKey: values.yaml
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kibana
+  namespace: elk-int
+spec:
+  interval: 10m
+  dependsOn:
+  - name: elasticsearch
+    namespace: elk-int
+  chart:
+    spec:
+      chart: kibana
+      version: "8.5.1"
+      sourceRef:
+        kind: HelmRepository
+        name: elastic
+        namespace: elk-int
+  valuesFrom:
+  - kind: ConfigMap
+    name: kibana-values
+    valuesKey: values.yaml
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: logstash
+  namespace: elk-int
+spec:
+  interval: 10m
+  dependsOn:
+  - name: elasticsearch
+    namespace: elk-int
+  chart:
+    spec:
+      chart: logstash
+      version: "8.5.1"
+      sourceRef:
+        kind: HelmRepository
+        name: elastic
+        namespace: elk-int
+  valuesFrom:
+  - kind: ConfigMap
+    name: logstash-values
+    valuesKey: values.yaml

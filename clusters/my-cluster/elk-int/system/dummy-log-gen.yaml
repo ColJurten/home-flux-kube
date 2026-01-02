@@ -28,7 +28,7 @@ spec:
             dur=$(awk 'BEGIN{srand(); print int(rand()*900)+10}')
             msg="request handled"
             if [ "$lvl" = "ERROR" ]; then msg="db timeout"; fi
-            echo "{\"@timestamp\":\"$ts\",\"level\":\"$lvl\",\"service\":\"$svc\",\"http\":{\"status_code\":$code},\"event\":{\"duration_ms\":$dur},\"message\":\"$msg\",\"k8s\":{\"namespace\":\"elk-test\",\"app\":\"log-generator\"},\"seq\":$i}"
+            echo "{\"@timestamp\":\"$ts\",\"level\":\"$lvl\",\"service\":\"$svc\",\"http\":{\"status_code\":$code},\"event\":{\"duration_ms\":$dur},\"message\":\"$msg\",\"k8s\":{\"namespace\":\"elk-int\",\"app\":\"log-generator\"},\"seq\":$i}"
             i=$((i+1))
             sleep 0.2
           done
