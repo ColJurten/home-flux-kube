@@ -7,7 +7,7 @@ imageTag: "8.15.0"
 imagePullPolicy: "IfNotPresent"
 
 # Point Kibana to Elasticsearch (HTTP, not HTTPS)
-elasticsearchHosts: "http://elasticsearch-master:9200"
+elasticsearchHosts: "http://elastic-master:9200"
 
 # Disable TLS/certificate mounting completely (security is disabled on ES)
 # The chart requires a valid secret name even if not used - use dummy secret
@@ -37,7 +37,7 @@ protocol: http
 kibanaConfig:
   kibana.yml: |
     server.host: "0.0.0.0"
-    elasticsearch.hosts: ["http://elasticsearch-master:9200"]
+    elasticsearch.hosts: ["http://elastic-master:9200"]
     elasticsearch.ssl.verificationMode: none
 
 # Service configuration
