@@ -11,9 +11,12 @@ imageTag: "8.15.0"
 imagePullPolicy: "IfNotPresent"
 
 # Set security disabled via environment variable (ensures it's set before config is read)
+# ELASTIC_PASSWORD is needed for the readiness probe even with security disabled
 extraEnvs:
 - name: xpack.security.enabled
   value: "false"
+- name: ELASTIC_PASSWORD
+  value: "dummy"
 
 # Disable security for dev environment
 esConfig:
@@ -52,17 +55,3 @@ antiAffinity: "soft"
 
 # Protocol (http since security is disabled)
 protocol: http
-
-# Override readiness probe - default requires ELASTIC_PASSWORD which we don't use
-readinessProbe:
-  exec:
-    command:
-    - bash
-    - -c
-    - |
-      set -e
-      curl -s --fail http://localhost:9200/_cluster/health?local=true
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 3
