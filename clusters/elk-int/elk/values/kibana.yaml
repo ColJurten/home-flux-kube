@@ -22,13 +22,23 @@ secretMounts: []
 extraVolumes: []
 extraVolumeMounts: []
 
+# Override the SSL env var that the chart sets by default
+extraEnvs:
+  - name: "NODE_OPTIONS"
+    value: "--max-old-space-size=1800"
+  - name: ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES
+    value: ""
+  - name: ELASTICSEARCH_SSL_VERIFICATIONMODE
+    value: "none"
+
 protocol: http
 
 # Kibana configuration
 kibanaConfig:
   kibana.yml: |
     server.host: "0.0.0.0"
-    elasticsearch.hosts: ["http://elastic-master:9200"]
+    elasticsearch.hosts: ["http://elasticsearch-master:9200"]
+    elasticsearch.ssl.verificationMode: none
 
 # Service configuration
 service:
