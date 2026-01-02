@@ -2,10 +2,10 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
 kind: Kustomization
 metadata:
   name: elk
-  namespace: elk-int
+  namespace: flux-system
 spec:
   interval: 30s
-  path: ./clusters/my-cluster/elk-int/elk
+  path: ./clusters/elk-int
   prune: true
   sourceRef:
     kind: GitRepository
