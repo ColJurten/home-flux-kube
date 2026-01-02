@@ -10,13 +10,17 @@ imagePullPolicy: "IfNotPresent"
 elasticsearchHosts: "http://elasticsearch-master:9200"
 
 # Disable TLS/certificate mounting completely (security is disabled on ES)
-# Must explicitly set to empty string to override chart defaults
-elasticsearchCertificateSecret: ""
-elasticsearchCertificateAuthoritiesFile: ""
-elasticsearchCredentialSecret: ""
+# Must explicitly set to empty/null to override chart defaults
+elasticsearchCertificateSecret: null
+elasticsearchCertificateAuthoritiesFile: null
+elasticsearchCredentialSecret: null
 
 # Disable secret mounts (prevents mounting non-existent elasticsearch-certs)
 secretMounts: []
+
+# Disable extra volumes that might reference certificates
+extraVolumes: []
+extraVolumeMounts: []
 
 protocol: http
 
