@@ -4,4 +4,6 @@ metadata:
   name: elasticsearch-master-certs
   namespace: elk-int
 type: Opaque
-data: {}
+data:
+  # Dummy CA cert - not used since ES security/TLS is disabled
+  ca.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCmR1bW15Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
