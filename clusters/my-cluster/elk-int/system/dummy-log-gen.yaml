@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-generator
+  namespace: elk-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-generator
+  template:
+    metadata:
+      labels:
+        app: log-generator
+    spec:
+      containers:
+      - name: gen
+        image: alpine:3.19
+        command: [ "/bin/sh", "-lc" ]
+        args:
+        - |
+          i=0
+          while true; do
+            ts=$(date -Iseconds)
+            lvl=$(awk 'BEGIN{srand(); r=rand(); if(r<0.7)print "INFO"; else if(r<0.9)print "WARN"; else print "ERROR"}')
+            svc=$(awk 'BEGIN{srand(); r=rand(); if(r<0.5)print "api"; else print "worker"}')
+            code=$(awk 'BEGIN{srand(); r=int(rand()*5); print 200+r*10}')
+            dur=$(awk 'BEGIN{srand(); print int(rand()*900)+10}')
+            msg="request handled"
+            if [ "$lvl" = "ERROR" ]; then msg="db timeout"; fi
+            echo "{\"@timestamp\":\"$ts\",\"level\":\"$lvl\",\"service\":\"$svc\",\"http\":{\"status_code\":$code},\"event\":{\"duration_ms\":$dur},\"message\":\"$msg\",\"k8s\":{\"namespace\":\"elk-test\",\"app\":\"log-generator\"},\"seq\":$i}"
+            i=$((i+1))
+            sleep 0.2
+          done
+        resources:
+          limits:
+            cpu: "100m"
+            memory: "64Mi"
