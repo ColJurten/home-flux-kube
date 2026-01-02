@@ -1,8 +1,9 @@
 # Official Elastic chart - single node dev setup
 clusterName: "elastic"
 
-# Single node configuration
+# Single node configuration - THIS IS THE KEY SETTING
 replicas: 1
+singleNode: true
 
 # Use official Elasticsearch image
 image: "docker.elastic.co/elasticsearch/elasticsearch"
@@ -17,7 +18,6 @@ extraEnvs:
 # Disable security for dev environment
 esConfig:
   elasticsearch.yml: |
-    discovery.type: single-node
     xpack.security.enabled: false
     xpack.security.enrollment.enabled: false
     xpack.security.http.ssl.enabled: false
@@ -27,10 +27,6 @@ esConfig:
 createCert: false
 secret:
   enabled: false
-
-# Disable master node discovery settings for single-node
-masterService: ""
-clusterInitialMasterNodes: ""
 
 # Keep resources low for local clusters
 resources:
