@@ -1,5 +1,12 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
+apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
-Namespace: elk-int
-Paths:
-- ../system
+metadata:
+  name: system
+  namespace: elk-int
+spec:
+  interval: 30s
+  path: ./clusters/my-cluster/elk-int/system
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
