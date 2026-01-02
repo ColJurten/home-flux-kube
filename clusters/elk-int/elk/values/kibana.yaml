@@ -24,12 +24,12 @@ extraVolumeMounts: []
 
 # Override the SSL env var that the chart sets by default
 extraEnvs:
-  - name: "NODE_OPTIONS"
-    value: "--max-old-space-size=1800"
-  - name: ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES
-    value: ""
-  - name: ELASTICSEARCH_SSL_VERIFICATIONMODE
-    value: "none"
+- name: "NODE_OPTIONS"
+  value: "--max-old-space-size=1800"
+- name: ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES
+  value: ""
+- name: ELASTICSEARCH_SSL_VERIFICATIONMODE
+  value: "none"
 
 protocol: http
 
@@ -45,13 +45,14 @@ service:
   type: ClusterIP
   port: 5601
 
-# Dev-friendly resources
+# Dev-friendly resources (Kibana 8.x needs at least 1Gi)
 resources:
   requests:
     cpu: "100m"
-    memory: "256Mi"
-  limits:
     memory: "512Mi"
+  limits:
+    cpu: "1"
+    memory: "1536Mi"
 
 # Health check path
 healthCheckPath: "/app/kibana"
