@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: log-generator
-  namespace: elk-test
+  namespace: elk-int
 spec:
   replicas: 1
   selector:
