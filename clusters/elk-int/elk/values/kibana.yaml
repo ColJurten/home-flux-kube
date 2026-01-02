@@ -14,6 +14,13 @@ createCert: false
 elasticsearchCertificateSecret: ""
 elasticsearchCertificateAuthoritiesFile: ""
 
+# Disable pre-install job (tries to mount certs)
+automountToken: false
+lifecycle: {}
+
+# Skip encryption key generation (not needed without security)
+secretMounts: []
+
 # Kibana configuration
 kibanaConfig:
   kibana.yml: |
