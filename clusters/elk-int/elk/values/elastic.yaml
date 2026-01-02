@@ -33,6 +33,9 @@ secret:
 discovery:
   type: single-node
 
+# Disable cluster.initial_master_nodes (incompatible with single-node)
+clusterInitialMasterNodes: []
+
 # Keep resources low for local clusters
 resources:
   requests:
