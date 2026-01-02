@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: elasticsearch-master-certs
+  namespace: elk-int
+type: Opaque
+data: {}
