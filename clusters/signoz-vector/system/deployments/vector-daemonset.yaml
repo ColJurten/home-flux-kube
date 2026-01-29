@@ -49,7 +49,7 @@ data:
 
     sinks:
       otlp:
-        type: otlp
+        type: opentelemetry
         inputs: [parse_json]
         endpoint: "otel-collector.signoz-vector.svc.cluster.local:4317"
         encoding:
