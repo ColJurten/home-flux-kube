@@ -45,17 +45,16 @@ schemaMigrator:
 
   image:
     registry:  *GLOBAL_IMAGE_REGISTRY
-initContainers:
-  init:
-    image:
-      registry:  *GLOBAL_IMAGE_REGISTRY
-      repository: busybox
-      tag: 1.35
+  initContainers:
+    init:
+      image:
+        registry:  *GLOBAL_IMAGE_REGISTRY
+        repository: busybox
+        tag: 1.35
 
-  wait:
-    image:
-      registry:  *GLOBAL_IMAGE_REGISTRY
-      repository: groundnuty/k8s-wait-for
-      tag: v2.0
+    wait:
+      image:
+        registry:  *GLOBAL_IMAGE_REGISTRY
+        repository: groundnuty/k8s-wait-for
+        tag: v2.0
 
-  
