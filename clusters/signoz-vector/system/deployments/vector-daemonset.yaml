@@ -86,6 +86,11 @@ spec:
       - name: vector
         image: timberio/vector:latest-debian
         args: ["-c", "/etc/vector/vector.yaml"]
+        env:
+        - name: VECTOR_SELF_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         resources:
           limits:
             cpu: "100m"
