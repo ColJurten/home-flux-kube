@@ -52,6 +52,7 @@ data:
         type: opentelemetry
         inputs: [parse_json]
         endpoint: "otel-collector.signoz-vector.svc.cluster.local:4317"
+        protocol: grpc
         encoding:
           codec: json
         # You may need to adjust endpoint and encoding for your OTel collector
