@@ -55,8 +55,13 @@ data:
         protocol:
           type: http
           uri: http://otel-collector.signoz-vector.svc.cluster.local:4317/v1/logs
-        encoding:
-          codec: json
+          method: post
+          encoding:
+            codec: json
+          framing:
+            method: newline_delimited
+          headers:
+            content-type: application/json
         # You may need to adjust endpoint and encoding for your OTel collector
 ---
 apiVersion: apps/v1
