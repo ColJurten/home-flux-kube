@@ -53,7 +53,7 @@ data:
         inputs: [parse_json]
         endpoint: "otel-collector.signoz-vector.svc.cluster.local:4317"
         protocol:
-          type: grpc
+          type: http
         encoding:
           codec: json
         # You may need to adjust endpoint and encoding for your OTel collector
