@@ -59,7 +59,7 @@ data:
         inputs: [parse_json, otlp_logs]
         endpoint: "signoz-otel-collector:4317"
         protocol:
-          type: grpc
+          type: http
         # Accept both parsed k8s logs and direct OTLP logs from the Java app
 ---
 apiVersion: apps/v1

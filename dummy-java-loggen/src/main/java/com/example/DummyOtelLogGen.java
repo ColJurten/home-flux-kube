@@ -15,15 +15,42 @@ import java.util.Random;
 
 public class DummyOtelLogGen {
     public static void main(String[] args) throws InterruptedException {
-        OtlpGrpcLogRecordExporter exporter = OtlpGrpcLogRecordExporter.builder()
+        // LOGS
+        OtlpGrpcLogRecordExporter logExporter = OtlpGrpcLogRecordExporter.builder()
             .setEndpoint("http://signoz-otel-collector.signoz-vector.svc.cluster.local:4317")
             .build();
         SdkLoggerProvider sdkLoggerProvider = SdkLoggerProvider.builder()
-            .addLogRecordProcessor(BatchLogRecordProcessor.builder(exporter).build())
+            .addLogRecordProcessor(BatchLogRecordProcessor.builder(logExporter).build())
             .build();
         GlobalLoggerProvider.set(sdkLoggerProvider);
         LoggerProvider loggerProvider = GlobalLoggerProvider.get();
         Logger logger = loggerProvider.loggerBuilder("dummy-java-loggen").build();
+
+        // TRACES
+        io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter traceExporter = io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter.builder()
+            .setEndpoint("http://signoz-otel-collector.signoz-vector.svc.cluster.local:4317")
+            .build();
+        io.opentelemetry.sdk.trace.SdkTracerProvider tracerProvider = io.opentelemetry.sdk.trace.SdkTracerProvider.builder()
+            .addSpanProcessor(io.opentelemetry.sdk.trace.export.BatchSpanProcessor.builder(traceExporter).build())
+            .build();
+        io.opentelemetry.api.GlobalOpenTelemetry.set(
+            io.opentelemetry.sdk.OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build()
+        );
+        io.opentelemetry.api.trace.Tracer tracer = io.opentelemetry.api.GlobalOpenTelemetry.getTracer("dummy-java-loggen");
+
+        // METRICS
+        io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter metricExporter = io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter.builder()
+            .setEndpoint("http://signoz-otel-collector.signoz-vector.svc.cluster.local:4317")
+            .build();
+        io.opentelemetry.sdk.metrics.SdkMeterProvider meterProvider = io.opentelemetry.sdk.metrics.SdkMeterProvider.builder()
+            .registerMetricReader(io.opentelemetry.sdk.metrics.export.PeriodicMetricReader.builder(metricExporter).build())
+            .build();
+        io.opentelemetry.api.metrics.Meter meter = meterProvider.get("dummy-java-loggen");
+        io.opentelemetry.api.metrics.LongCounter requestCounter = meter.counterBuilder("dummy_requests_total")
+            .setDescription("Total requests handled")
+            .setUnit("1")
+            .build();
+
         Random random = new Random();
         int i = 0;
         while (true) {
@@ -34,6 +61,16 @@ public class DummyOtelLogGen {
             int code = 200 + random.nextInt(5) * 10;
             int dur = 10 + random.nextInt(900);
             String msg = level.equals("ERROR") ? "db timeout" : "request handled";
+
+
+            // TRACE
+            io.opentelemetry.api.trace.Span span = tracer.spanBuilder("dummy-span")
+                .setAttribute("service.name", service)
+                .setAttribute("http.status_code", code)
+                .setAttribute("event.duration_ms", dur)
+                .startSpan();
+
+            // LOG (with trace/span IDs)
             LogRecordBuilder logRecord = logger.logRecordBuilder()
                 .setTimestamp(Instant.now())
                 .setSeverity(Severity.valueOf(level))
@@ -43,10 +80,24 @@ public class DummyOtelLogGen {
                 .setAttribute(AttributeKey.longKey("event.duration_ms"), (long) dur)
                 .setAttribute(AttributeKey.stringKey("k8s.namespace"), "signoz-vector")
                 .setAttribute(AttributeKey.stringKey("k8s.app"), "log-generator")
-                .setAttribute(AttributeKey.longKey("seq"), (long) i);
+                .setAttribute(AttributeKey.longKey("seq"), (long) i)
+                .setAttribute(AttributeKey.stringKey("trace_id"), span.getSpanContext().getTraceId())
+                .setAttribute(AttributeKey.stringKey("span_id"), span.getSpanContext().getSpanId());
             logRecord.emit();
+
+            try {
+                Thread.sleep(200);
+            } finally {
+                span.end();
+            }
+
+            // METRIC
+            requestCounter.add(1, io.opentelemetry.api.common.Attributes.of(
+                AttributeKey.stringKey("service.name"), service,
+                AttributeKey.stringKey("k8s.namespace"), "signoz-vector"
+            ));
+
             i++;
-            Thread.sleep(200);
         }
     }
 }
