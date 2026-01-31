@@ -57,7 +57,7 @@ data:
       otlp:
         type: opentelemetry
         inputs: [parse_json, otlp_logs]
-        endpoint: "otel-collector.signoz-vector.svc.cluster.local:4317"
+        endpoint: "signoz-otel-collector:4317"
         protocol:
           type: grpc
         # Accept both parsed k8s logs and direct OTLP logs from the Java app
