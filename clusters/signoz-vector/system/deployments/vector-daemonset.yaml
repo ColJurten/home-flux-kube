@@ -40,6 +40,11 @@ data:
       kubernetes_logs:
         type: kubernetes_logs
         self_node_name: ${VECTOR_SELF_NODE_NAME}
+      otlp_logs:
+        type: opentelemetry
+        address: 0.0.0.0:4317
+        encoding:
+          codec: otlp
 
     transforms:
       parse_json:
@@ -51,20 +56,11 @@ data:
     sinks:
       otlp:
         type: opentelemetry
-        inputs: [parse_json]
+        inputs: [parse_json, otlp_logs]
         endpoint: "otel-collector.signoz-vector.svc.cluster.local:4317"
         protocol:
-          type: http
-          uri: http://otel-collector.signoz-vector.svc.cluster.local:4317/v1/logs
-          method: post
-          encoding:
-            codec: json
-          framing:
-            method: newline_delimited
-          request:
-            headers:
-              content-type: application/json
-        # You may need to adjust endpoint and encoding for your OTel collector
+          type: grpc
+        # Accept both parsed k8s logs and direct OTLP logs from the Java app
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -85,7 +81,7 @@ spec:
       containers:
       - name: vector
         image: timberio/vector:latest-debian
-        args: ["-c", "/etc/vector/vector.yaml"]
+        args: [ "-c", "/etc/vector/vector.yaml" ]
         env:
         - name: VECTOR_SELF_NODE_NAME
           valueFrom:
