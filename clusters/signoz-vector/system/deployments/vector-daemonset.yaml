@@ -1,3 +1,123 @@
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   name: vector
+#   namespace: signoz-vector
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRole
+# metadata:
+#   name: vector
+# rules:
+# - apiGroups: [ "" ]
+#   resources:
+#   - pods
+#   - namespaces
+#   - nodes
+#   verbs: [ "get", "list", "watch" ]
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: vector
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: vector
+# subjects:
+# - kind: ServiceAccount
+#   name: vector
+#   namespace: signoz-vector
+# ---
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: vector-config
+#   namespace: signoz-vector
+# data:
+#   vector.yaml: |
+#     sources:
+#       kubernetes_logs:
+#         type: kubernetes_logs
+#         self_node_name: ${VECTOR_SELF_NODE_NAME}
+#       otlp_logs:
+#         type: opentelemetry
+#         address: 0.0.0.0:4317
+#         encoding:
+#           codec: otlp
+
+#     transforms:
+#       parse_json:
+#         type: remap
+#         inputs: [kubernetes_logs]
+#         source: |
+#           . = parse_json!(.message)
+
+#     sinks:
+#       otlp:
+#         type: opentelemetry
+#         inputs: [parse_json, otlp_logs]
+#         endpoint: "signoz-otel-collector:4317"
+#         protocol:
+#           type: http
+#         # Accept both parsed k8s logs and direct OTLP logs from the Java app
+# ---
+# apiVersion: apps/v1
+# kind: DaemonSet
+# metadata:
+#   name: vector
+#   namespace: signoz-vector
+# spec:
+#   selector:
+#     matchLabels:
+#       app: vector
+#   template:
+#     metadata:
+#       labels:
+#         app: vector
+#     spec:
+#       serviceAccountName: vector
+#       terminationGracePeriodSeconds: 30
+#       containers:
+#       - name: vector
+#         image: timberio/vector:latest-debian
+#         args: [ "-c", "/etc/vector/vector.yaml" ]
+#         env:
+#         - name: VECTOR_SELF_NODE_NAME
+#           valueFrom:
+#             fieldRef:
+#               fieldPath: spec.nodeName
+#         resources:
+#           limits:
+#             cpu: "100m"
+#             memory: "128Mi"
+#         volumeMounts:
+#         - name: config
+#           mountPath: /etc/vector/vector.yaml
+#           subPath: vector.yaml
+#         - name: varlogcontainers
+#           mountPath: /var/log/containers
+#           readOnly: true
+#         - name: varlogpods
+#           mountPath: /var/log/pods
+#           readOnly: true
+#         - name: varlibdockercontainers
+#           mountPath: /var/lib/docker/containers
+#           readOnly: true
+#       volumes:
+#       - name: config
+#         configMap:
+#           name: vector-config
+#       - name: varlogcontainers
+#         hostPath:
+#           path: /var/log/containers
+#       - name: varlogpods
+#         hostPath:
+#           path: /var/log/pods
+#       - name: varlibdockercontainers
+#         hostPath:
+#           path: /var/lib/docker/containers
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -39,12 +159,6 @@ data:
     sources:
       kubernetes_logs:
         type: kubernetes_logs
-        self_node_name: ${VECTOR_SELF_NODE_NAME}
-      otlp_logs:
-        type: opentelemetry
-        address: 0.0.0.0:4317
-        encoding:
-          codec: otlp
 
     transforms:
       parse_json:
@@ -55,12 +169,12 @@ data:
 
     sinks:
       otlp:
-        type: opentelemetry
-        inputs: [parse_json, otlp_logs]
-        endpoint: "signoz-otel-collector:4317"
-        protocol:
-          type: http
-        # Accept both parsed k8s logs and direct OTLP logs from the Java app
+        type: otlp
+        inputs: [parse_json]
+        endpoint: "otel-collector.signoz-vector.svc.cluster.local:4317"
+        encoding:
+          codec: json
+        # You may need to adjust endpoint and encoding for your OTel collector
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -80,13 +194,8 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
       - name: vector
-        image: timberio/vector:latest-debian
-        args: [ "-c", "/etc/vector/vector.yaml" ]
-        env:
-        - name: VECTOR_SELF_NODE_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.nodeName
+        image: timberio/vector:0.34.0-debian
+        args: ["-c", "/etc/vector/vector.yaml"]
         resources:
           limits:
             cpu: "100m"
