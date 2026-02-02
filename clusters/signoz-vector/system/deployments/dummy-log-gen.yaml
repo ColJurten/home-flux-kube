@@ -16,9 +16,14 @@ spec:
         app: otel-telemetrygen
     spec:
       initContainers:
-      - name: copy-binary
-        image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:v0.144.0
-        command: ["cp", "/telemetrygen", "/shared/telemetrygen"]
+      - name: download-binary
+        image: curlimages/curl:8.5.0
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            curl -L -o /shared/telemetrygen.tar.gz \
+              "https://github.com/open-telemetry/opentelemetry-collector-contrib/releases/download/v0.96.0/telemetrygen_0.96.0_linux_amd64.tar.gz" && \
+            cd /shared && tar -xzf telemetrygen.tar.gz && chmod +x telemetrygen
         volumeMounts:
         - name: shared
           mountPath: /shared
@@ -28,8 +33,6 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            chmod +x /shared/telemetrygen
-            
             # Start trace generator in background
             /shared/telemetrygen traces \
               --otlp-endpoint=otel-collector:4317 \
