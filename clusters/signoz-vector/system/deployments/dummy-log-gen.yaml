@@ -1,5 +1,6 @@
 # OpenTelemetry Telemetry Generator - All Signals (Logs, Traces, Metrics)
-# Single container generating correlated telemetry in native OTLP format
+# Single POD with sidecar containers generating correlated telemetry in native OTLP format
+# All containers share the same network namespace and lifecycle
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,60 +16,52 @@ spec:
       labels:
         app: otel-telemetrygen
     spec:
-      initContainers:
-      - name: download-binary
-        image: curlimages/curl:8.5.0
-        command: ["/bin/sh", "-c"]
-        args:
-          - |
-            curl -L -o /shared/telemetrygen.tar.gz \
-              "https://github.com/open-telemetry/opentelemetry-collector-contrib/releases/download/v0.96.0/telemetrygen_0.96.0_linux_amd64.tar.gz" && \
-            cd /shared && tar -xzf telemetrygen.tar.gz && chmod +x telemetrygen
-        volumeMounts:
-        - name: shared
-          mountPath: /shared
       containers:
-      - name: telemetrygen
-        image: alpine:3.19
-        command: ["/bin/sh", "-c"]
+      # Trace generator
+      - name: tracegen
+        image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:v0.96.0
         args:
-          - |
-            # Start trace generator in background
-            /shared/telemetrygen traces \
-              --otlp-endpoint=otel-collector:4317 \
-              --otlp-insecure \
-              --rate=2 \
-              --duration=0 \
-              --otlp-attributes=service.name="demo-service" \
-              --otlp-attributes=k8s.namespace="signoz-vector" \
-              --otlp-attributes=environment="dev" &
-            
-            # Start metrics generator in background
-            /shared/telemetrygen metrics \
-              --otlp-endpoint=otel-collector:4317 \
-              --otlp-insecure \
-              --rate=1 \
-              --duration=0 \
-              --otlp-attributes=service.name="demo-service" \
-              --otlp-attributes=k8s.namespace="signoz-vector" \
-              --otlp-attributes=environment="dev" &
-            
-            # Start logs generator in foreground (keeps container alive)
-            /shared/telemetrygen logs \
-              --otlp-endpoint=otel-collector:4317 \
-              --otlp-insecure \
-              --rate=2 \
-              --duration=0 \
-              --otlp-attributes=service.name="demo-service" \
-              --otlp-attributes=k8s.namespace="signoz-vector" \
-              --otlp-attributes=environment="dev"
-        volumeMounts:
-        - name: shared
-          mountPath: /shared
+          - traces
+          - --otlp-endpoint=otel-collector:4317
+          - --otlp-insecure
+          - --rate=2
+          - --duration=0
+          - --otlp-attributes=service.name="demo-service"
+          - --otlp-attributes=k8s.namespace="signoz-vector"
+          - --otlp-attributes=environment="dev"
         resources:
           limits:
-            cpu: "100m"
-            memory: "128Mi"
-      volumes:
-      - name: shared
-        emptyDir: {}
+            cpu: "50m"
+            memory: "32Mi"
+      # Metrics generator
+      - name: metricgen
+        image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:v0.96.0
+        args:
+          - metrics
+          - --otlp-endpoint=otel-collector:4317
+          - --otlp-insecure
+          - --rate=1
+          - --duration=0
+          - --otlp-attributes=service.name="demo-service"
+          - --otlp-attributes=k8s.namespace="signoz-vector"
+          - --otlp-attributes=environment="dev"
+        resources:
+          limits:
+            cpu: "50m"
+            memory: "32Mi"
+      # Logs generator
+      - name: loggen
+        image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:v0.96.0
+        args:
+          - logs
+          - --otlp-endpoint=otel-collector:4317
+          - --otlp-insecure
+          - --rate=2
+          - --duration=0
+          - --otlp-attributes=service.name="demo-service"
+          - --otlp-attributes=k8s.namespace="signoz-vector"
+          - --otlp-attributes=environment="dev"
+        resources:
+          limits:
+            cpu: "50m"
+            memory: "32Mi"
