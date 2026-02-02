@@ -5,6 +5,7 @@ metadata:
   namespace: signoz-vector
 spec:
   interval: 1m
+  timeout: 10m0s
   chart:
     spec:
       chart: signoz
