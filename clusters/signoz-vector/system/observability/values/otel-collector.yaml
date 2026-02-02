@@ -3,13 +3,13 @@
 # Declare variables to be passed into your templates.
 
 nameOverride: ""
-fullnameOverride: ""
+fullnameOverride: "otel-collector"
 
 # Valid values are "daemonset", "deployment", and "statefulset".
-mode: ""
+mode: "deployment"
 
 # Specify which namespace should be used to deploy the resources into
-namespaceOverride: ""
+namespaceOverride: "signoz-vector"
 
 # Handles basic configuration of components that
 # also require k8s modifications to work correctly.
@@ -48,10 +48,10 @@ presets:
   # Best used with mode = daemonset.
   # See https://opentelemetry.io/docs/kubernetes/collector/components/#kubernetes-attributes-processor for details on the receiver.
   kubernetesAttributes:
-    enabled: false
+    enabled: true
     # When enabled the processor will extract all labels for an associated pod and add them as resource attributes.
     # The label's exact name will be the key.
-    extractAllPodLabels: false
+    extractAllPodLabels: true
     # When enabled the processor will extract all annotations for an associated pod and add them as resource attributes.
     # The annotation's exact name will be the key.
     extractAllPodAnnotations: false
@@ -141,6 +141,11 @@ internalTelemetryViaOTLP:
 config:
   exporters:
     debug: {}
+    # OTLP exporter to SigNoz OTEL Collector
+    otlp:
+      endpoint: "signoz-otel-collector:4317"
+      tls:
+        insecure: true
   extensions:
     # The health_check extension is mandatory for this chart.
     # Without the health_check extension the collector will fail the readiness and liveness probes.
@@ -148,7 +153,9 @@ config:
     health_check:
       endpoint: ${env:MY_POD_IP}:13133
   processors:
-    batch: {}
+    batch:
+      timeout: 5s
+      send_batch_size: 10000
     # Default memory limiter configuration for the collector based on k8s resource limits.
     memory_limiter:
       # check_interval is the time between measurements of memory usage.
@@ -157,7 +164,14 @@ config:
       limit_percentage: 80
       # By default spike_limit_mib is set to 25% of ".Values.resources.limits.memory"
       spike_limit_percentage: 25
+    # Add resource attributes for better observability
+    resource:
+      attributes:
+        - key: collector.name
+          value: "otel-collector"
+          action: upsert
   receivers:
+    # Jaeger receiver for traces
     jaeger:
       protocols:
         grpc:
@@ -166,21 +180,44 @@ config:
           endpoint: ${env:MY_POD_IP}:14268
         thrift_compact:
           endpoint: ${env:MY_POD_IP}:6831
+    # OTLP receiver for logs from Vector and traces
     otlp:
       protocols:
         grpc:
           endpoint: ${env:MY_POD_IP}:4317
         http:
           endpoint: ${env:MY_POD_IP}:4318
-    # if internalTelemetryViaOTLP.metrics.enabled = true, prometheus receiver will be removed
+    # Prometheus receiver to scrape VictoriaMetrics and self metrics
     prometheus:
       config:
         scrape_configs:
+          # Scrape collector's own metrics
           - job_name: opentelemetry-collector
             scrape_interval: 10s
             static_configs:
               - targets:
                   - ${env:MY_POD_IP}:8888
+          # Scrape VictoriaMetrics Single Node metrics
+          - job_name: vmsingle
+            scrape_interval: 30s
+            static_configs:
+              - targets:
+                  - vmsingle-vm-stack:8428
+            metrics_path: /metrics
+          # Scrape VMAgent metrics
+          - job_name: vmagent
+            scrape_interval: 30s
+            static_configs:
+              - targets:
+                  - vmagent-vm-stack:8429
+            metrics_path: /metrics
+          # Scrape VMAlert metrics
+          - job_name: vmalert
+            scrape_interval: 30s
+            static_configs:
+              - targets:
+                  - vmalert-vm-stack:8080
+            metrics_path: /metrics
     zipkin:
       endpoint: ${env:MY_POD_IP}:9411
   service:
@@ -195,34 +232,42 @@ config:
     extensions:
       - health_check
     pipelines:
+      # Logs pipeline - receives from Vector via OTLP, exports to SigNoz
       logs:
-        exporters:
-          - debug
-        processors:
-          - memory_limiter
-          - batch
         receivers:
           - otlp
+        processors:
+          - memory_limiter
+          - resource
+          - batch
+        exporters:
+          - otlp
+          - debug
+      # Metrics pipeline - scrapes VictoriaMetrics, exports to SigNoz
       metrics:
-        exporters:
-          - debug
-        processors:
-          - memory_limiter
-          - batch
         receivers:
           - otlp
-          # if internalTelemetryViaOTLP.metrics.enabled = true, prometheus receiver will be removed
           - prometheus
-      traces:
-        exporters:
-          - debug
         processors:
           - memory_limiter
+          - resource
           - batch
+        exporters:
+          - otlp
+          - debug
+      # Traces pipeline - receives from Jaeger/OTLP, exports to SigNoz
+      traces:
         receivers:
           - otlp
           - jaeger
           - zipkin
+        processors:
+          - memory_limiter
+          - resource
+          - batch
+        exporters:
+          - otlp
+          - debug
 
 # Helm currently has an issue (https://github.com/helm/helm/pull/12879) when using null to remove
 # default configuration from a subchart. The result is that you cannot remove default configuration
@@ -371,7 +416,7 @@ ports:
   metrics:
     # The metrics port is disabled by default. However you need to enable the port
     # in order to use the ServiceMonitor (serviceMonitor.enabled) or PodMonitor (podMonitor.enabled).
-    enabled: false
+    enabled: true
     containerPort: 8888
     servicePort: 8888
     protocol: TCP
@@ -383,11 +428,13 @@ useGOMEMLIMIT: true
 
 # Resource limits & requests.
 # It is HIGHLY recommended to set resource limits.
-resources: {}
-# resources:
-#   limits:
-#     cpu: 250m
-#     memory: 512Mi
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
 
 enableConfigChecksumAnnotation: true
 podAnnotations: {}

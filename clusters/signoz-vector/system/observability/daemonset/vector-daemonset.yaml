@@ -175,18 +175,15 @@ data:
         type: remap
 
     sinks:
-      vector_out:
-        address: vip-logfluentd-p.prod.lan:8224 # WIP Setting up OTEL Collector - change later
-        buffer:
-          max_size: 8589934592
-          type: disk
-        compression: true
+      # Send logs to OTEL Collector via OTLP
+      otel_collector:
+        type: opentelemetry
         inputs:
-        - remap_common
-        tls:
-          enabled: true
-          verify_certificate: false
-        type: vector
+          - remap_common
+        endpoint: "http://otel-collector:4317"
+        protocol:
+          type: grpc
+        compression: gzip
 ---
 apiVersion: apps/v1
 kind: DaemonSet
