@@ -175,18 +175,15 @@ data:
         type: remap
 
     sinks:
-      # Send logs to OTEL Collector via HTTP
+      # Send logs to standalone OTEL Collector via syslog
       otel_collector:
-        type: http
+        type: socket
         inputs:
           - remap_common
-        uri: "http://otel-collector:4318/v1/logs"
-        method: post
+        address: "otel-collector:5514"
+        mode: tcp
         encoding:
           codec: json
-        compression: gzip
-        headers:
-          Content-Type: "application/json"
 ---
 apiVersion: apps/v1
 kind: DaemonSet
