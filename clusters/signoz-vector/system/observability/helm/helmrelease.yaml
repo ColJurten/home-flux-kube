@@ -43,7 +43,7 @@ spec:
   interval: 1m
   chart:
     spec:
-      chart: vm/victoria-metrics-k8s-stack
+      chart: victoria-metrics-k8s-stack
       version: 0.45.0
       sourceRef:
         kind: HelmRepository
