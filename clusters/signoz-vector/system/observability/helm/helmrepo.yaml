@@ -1,0 +1,28 @@
+# apiVersion: source.toolkit.fluxcd.io/v1beta2
+# kind: HelmRepository
+# metadata:
+#   name: otel-collector-repo
+#   namespace: signoz-vector
+# spec:
+#   interval: 30m
+#   url: https://open-telemetry.github.io/opentelemetry-helm-charts
+# ---
+
+# apiVersion: source.toolkit.fluxcd.io/v1beta2
+# kind: HelmRepository
+# metadata:
+#   name: jaeger-repo
+#   namespace: signoz-vector
+# spec:
+#   interval: 30m
+#   url: https://jaegertracing.github.io/helm-charts
+# ---
+
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: victoriametrics-repo
+  namespace: signoz-vector
+spec:
+  interval: 30m
+  url: https://victoriametrics.github.io/helm-charts/
