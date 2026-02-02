@@ -8,23 +8,33 @@ metadata:
   namespace: signoz-vector
 data:
   generator.py: |
-    import time
-    import random
-    import logging
-    import os
-    from opentelemetry import trace, metrics
-    from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import BatchSpanProcessor
-    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-    from opentelemetry.sdk.metrics import MeterProvider
-    from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-    from opentelemetry.sdk.metrics.view import ExplicitBucketHistogramAggregation, View
-    from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
-    from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
-    from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
-    from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
-    from opentelemetry.sdk.resources import Resource
-    from opentelemetry._logs import set_logger_provider
+    #!/usr/bin/env python3
+    import sys
+    print("Script starting...", flush=True)
+    
+    try:
+        import time
+        import random
+        import logging
+        import os
+        print("Standard imports OK", flush=True)
+        
+        from opentelemetry import trace, metrics
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+        from opentelemetry.sdk.metrics import MeterProvider
+        from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+        from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+        from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+        from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+        from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry._logs import set_logger_provider
+        print("OpenTelemetry imports OK", flush=True)
+    except ImportError as e:
+        print(f"Import error: {e}", flush=True)
+        sys.exit(1)
 
     # =============================================================================
     # USER CONFIGURATION - Modify these variables as needed
@@ -40,7 +50,7 @@ data:
     OTEL_ENDPOINT = os.getenv("OTEL_ENDPOINT", "otel-collector:4317")
     
     # Telemetry generation rates
-    REQUEST_INTERVAL_SEC = float(os.getenv("REQUEST_INTERVAL_SEC", "0.5"))  # Time between requests
+    REQUEST_INTERVAL_SEC = float(os.getenv("REQUEST_INTERVAL_SEC", "0.5"))
     METRICS_EXPORT_INTERVAL_MS = int(os.getenv("METRICS_EXPORT_INTERVAL_MS", "5000"))
     
     # Simulated request parameters
@@ -48,7 +58,7 @@ data:
     MAX_DURATION_MS = int(os.getenv("MAX_DURATION_MS", "500"))
     
     # Status code distribution (weights for 200, 201, 400, 500)
-    STATUS_WEIGHTS = [70, 15, 10, 5]  # 70% success, 15% created, 10% client error, 5% server error
+    STATUS_WEIGHTS = [70, 15, 10, 5]
     
     # API operations to simulate
     OPERATIONS = [
@@ -64,6 +74,8 @@ data:
     # END USER CONFIGURATION
     # =============================================================================
 
+    print(f"Configuration loaded: SERVICE_NAME={SERVICE_NAME}, OTEL_ENDPOINT={OTEL_ENDPOINT}", flush=True)
+
     # Resource attributes for correlation
     resource = Resource.create({
         "service.name": SERVICE_NAME,
@@ -73,6 +85,7 @@ data:
     })
 
     # Setup Tracing FIRST (required for exemplars)
+    print("Setting up tracing...", flush=True)
     trace_provider = TracerProvider(resource=resource)
     trace_provider.add_span_processor(
         BatchSpanProcessor(OTLPSpanExporter(endpoint=OTEL_ENDPOINT, insecure=True))
@@ -81,30 +94,21 @@ data:
     tracer = trace.get_tracer(SERVICE_NAME)
 
     # Setup Metrics with Exemplars enabled
-    # Exemplars attach trace_id/span_id to metric data points for correlation
+    print("Setting up metrics...", flush=True)
     metric_exporter = OTLPMetricExporter(endpoint=OTEL_ENDPOINT, insecure=True)
     metric_reader = PeriodicExportingMetricReader(
         metric_exporter,
         export_interval_millis=METRICS_EXPORT_INTERVAL_MS
     )
     
-    # Define histogram buckets for duration metrics
-    duration_histogram_view = View(
-        instrument_name=f"{SERVICE_NAME.replace('-', '_')}_request_duration_ms",
-        aggregation=ExplicitBucketHistogramAggregation(
-            boundaries=[5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
-        )
-    )
-    
     meter_provider = MeterProvider(
         resource=resource,
-        metric_readers=[metric_reader],
-        views=[duration_histogram_view]
+        metric_readers=[metric_reader]
     )
     metrics.set_meter_provider(meter_provider)
     meter = metrics.get_meter(SERVICE_NAME)
 
-    # Create metrics - Histograms support exemplars automatically
+    # Create metrics
     request_counter = meter.create_counter(
         f"{SERVICE_NAME.replace('-', '_')}_requests_total",
         description="Total requests processed"
@@ -118,12 +122,9 @@ data:
         f"{SERVICE_NAME.replace('-', '_')}_errors_total",
         description="Total errors encountered"
     )
-    active_requests = meter.create_up_down_counter(
-        f"{SERVICE_NAME.replace('-', '_')}_active_requests",
-        description="Currently active requests"
-    )
 
     # Setup Logging with trace context injection
+    print("Setting up logging...", flush=True)
     logger_provider = LoggerProvider(resource=resource)
     logger_provider.add_log_record_processor(
         BatchLogRecordProcessor(OTLPLogExporter(endpoint=OTEL_ENDPOINT, insecure=True))
@@ -133,60 +134,65 @@ data:
     logging.basicConfig(level=logging.INFO, handlers=[handler])
     logger = logging.getLogger(SERVICE_NAME)
 
-    print(f"Starting correlated telemetry generator...")
-    print(f"  Service: {SERVICE_NAME} v{SERVICE_VERSION}")
-    print(f"  Environment: {ENVIRONMENT}")
-    print(f"  Namespace: {K8S_NAMESPACE}")
-    print(f"  OTEL Endpoint: {OTEL_ENDPOINT}")
-    print(f"  Request Interval: {REQUEST_INTERVAL_SEC}s")
-    print(f"  Exemplars: ENABLED (metrics linked to traces)")
+    print(f"========================================", flush=True)
+    print(f"Correlated Telemetry Generator Started", flush=True)
+    print(f"========================================", flush=True)
+    print(f"  Service: {SERVICE_NAME} v{SERVICE_VERSION}", flush=True)
+    print(f"  Environment: {ENVIRONMENT}", flush=True)
+    print(f"  Namespace: {K8S_NAMESPACE}", flush=True)
+    print(f"  OTEL Endpoint: {OTEL_ENDPOINT}", flush=True)
+    print(f"  Request Interval: {REQUEST_INTERVAL_SEC}s", flush=True)
+    print(f"  Exemplars: ENABLED (metrics linked to traces)", flush=True)
+    print(f"========================================", flush=True)
     
+    request_count = 0
     while True:
-        operation = random.choice(OPERATIONS)
-        method, path = operation.split(" ", 1)
-        duration = random.randint(MIN_DURATION_MS, MAX_DURATION_MS)
-        status = random.choices([200, 201, 400, 500], weights=STATUS_WEIGHTS)[0]
-        
-        # Create a trace span - metrics recorded within span will have exemplars
-        with tracer.start_as_current_span(operation) as span:
-            # Get current trace context for correlation
-            span_context = span.get_span_context()
-            trace_id = format(span_context.trace_id, '032x')
-            span_id = format(span_context.span_id, '016x')
+        try:
+            operation = random.choice(OPERATIONS)
+            method, path = operation.split(" ", 1)
+            duration = random.randint(MIN_DURATION_MS, MAX_DURATION_MS)
+            status = random.choices([200, 201, 400, 500], weights=STATUS_WEIGHTS)[0]
             
-            span.set_attribute("http.method", method)
-            span.set_attribute("http.url", path)
-            span.set_attribute("http.status_code", status)
-            span.set_attribute("duration_ms", duration)
-            span.set_attribute("service.name", SERVICE_NAME)
-            span.set_attribute("deployment.environment", ENVIRONMENT)
+            # Create a trace span - metrics recorded within span will have exemplars
+            with tracer.start_as_current_span(operation) as span:
+                # Get current trace context for correlation
+                span_context = span.get_span_context()
+                trace_id = format(span_context.trace_id, '032x')
+                span_id = format(span_context.span_id, '016x')
+                
+                span.set_attribute("http.method", method)
+                span.set_attribute("http.url", path)
+                span.set_attribute("http.status_code", status)
+                span.set_attribute("duration_ms", duration)
+                span.set_attribute("service.name", SERVICE_NAME)
+                span.set_attribute("deployment.environment", ENVIRONMENT)
+                
+                # Log within trace context - trace_id/span_id auto-injected
+                if status >= 500:
+                    logger.error(f"Request failed: {operation} - status={status} duration={duration}ms")
+                    error_counter.add(1, {"operation": operation, "error_type": "server_error"})
+                    span.set_status(trace.StatusCode.ERROR, "Server error")
+                elif status >= 400:
+                    logger.warning(f"Client error: {operation} - status={status} duration={duration}ms")
+                    error_counter.add(1, {"operation": operation, "error_type": "client_error"})
+                else:
+                    logger.info(f"Request handled: {operation} - status={status} duration={duration}ms")
+                
+                # Simulate work
+                time.sleep(duration / 1000)
+                
+                # Record metrics WITHIN the span context - this enables exemplars
+                request_counter.add(1, {"operation": operation, "status": str(status), "method": method})
+                request_duration.record(duration, {"operation": operation, "method": method})
             
-            # Track active requests
-            active_requests.add(1, {"operation": operation})
+            request_count += 1
+            if request_count % 10 == 0:
+                print(f"Generated {request_count} requests (last: {operation} trace_id={trace_id[:16]}...)", flush=True)
             
-            # Log within trace context - trace_id/span_id auto-injected
-            log_attrs = {"trace_id": trace_id, "span_id": span_id}
-            if status >= 500:
-                logger.error(f"Request failed: {operation} - status={status} duration={duration}ms", extra=log_attrs)
-                error_counter.add(1, {"operation": operation, "error_type": "server_error"})
-                span.set_status(trace.StatusCode.ERROR, "Server error")
-            elif status >= 400:
-                logger.warning(f"Client error: {operation} - status={status} duration={duration}ms", extra=log_attrs)
-                error_counter.add(1, {"operation": operation, "error_type": "client_error"})
-            else:
-                logger.info(f"Request handled: {operation} - status={status} duration={duration}ms", extra=log_attrs)
-            
-            # Simulate work
-            time.sleep(duration / 1000)
-            
-            # Record metrics WITHIN the span context - this enables exemplars
-            # The histogram will capture trace_id/span_id as exemplars
-            request_counter.add(1, {"operation": operation, "status": str(status), "method": method})
-            request_duration.record(duration, {"operation": operation, "method": method})
-            
-            active_requests.add(-1, {"operation": operation})
-        
-        time.sleep(REQUEST_INTERVAL_SEC)
+            time.sleep(REQUEST_INTERVAL_SEC)
+        except Exception as e:
+            print(f"Error in main loop: {e}", flush=True)
+            time.sleep(1)
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -211,8 +217,11 @@ spec:
           - |
             pip install --quiet opentelemetry-api opentelemetry-sdk \
               opentelemetry-exporter-otlp-proto-grpc && \
-            python /scripts/generator.py
+            python -u /scripts/generator.py
         env:
+        # Ensure unbuffered Python output
+        - name: PYTHONUNBUFFERED
+          value: "1"
         # Override these environment variables to customize the generator
         - name: SERVICE_NAME
           value: "demo-service"
