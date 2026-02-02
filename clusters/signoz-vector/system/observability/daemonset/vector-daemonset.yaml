@@ -203,7 +203,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
       - name: vector
-        image: timberio/vector:0.34.0-debian
+        image: timberio/vector:0.42.0-debian
         args: ["-c", "/etc/vector/vector.yaml"]
         env:
         - name: VECTOR_SELF_NODE_NAME
