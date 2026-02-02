@@ -159,6 +159,7 @@ data:
     sources:
       kubernetes_logs:
         type: kubernetes_logs
+        self_node_name: ${VECTOR_SELF_NODE_NAME}
 
     transforms:
       remap_common:
@@ -207,6 +208,11 @@ spec:
       - name: vector
         image: timberio/vector:0.34.0-debian
         args: ["-c", "/etc/vector/vector.yaml"]
+        env:
+        - name: VECTOR_SELF_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         resources:
           limits:
             cpu: "100m"
