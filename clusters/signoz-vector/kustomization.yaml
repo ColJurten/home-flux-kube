@@ -4,12 +4,15 @@ kind: Kustomization
 namespace: signoz-vector
 
 resources:
+- kustomization/system-kustomization.yaml
+- kustomization/signoz-kustomization.yaml
 - signoz/helm/helmrepo.yaml
 - signoz/helm/helmrelease.yaml
 - system/observability/helm/helmrepo.yaml
 - system/observability/helm/helmrelease.yaml
 - system/observability/daemonset/vector-daemonset.yaml
 - system/deployments/dummy-log-gen.yaml
+- system/namespace.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
