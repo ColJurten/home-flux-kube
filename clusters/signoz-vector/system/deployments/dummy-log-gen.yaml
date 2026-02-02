@@ -17,8 +17,6 @@ data:
         import random
         import logging
         import os
-        import psutil
-        import threading
         print("Standard imports OK", flush=True)
         
         from opentelemetry import trace, metrics
@@ -124,31 +122,6 @@ data:
         f"{SERVICE_NAME.replace('-', '_')}_errors_total",
         description="Total errors encountered"
     )
-    
-    # System resource metrics (CPU/RAM)
-    cpu_usage_gauge = meter.create_observable_gauge(
-        f"{SERVICE_NAME.replace('-', '_')}_cpu_usage_percent",
-        callbacks=[lambda options: [(psutil.Process().cpu_percent(), {})]],
-        description="CPU usage percentage of the service",
-        unit="%"
-    )
-    memory_usage_gauge = meter.create_observable_gauge(
-        f"{SERVICE_NAME.replace('-', '_')}_memory_usage_bytes",
-        callbacks=[lambda options: [(psutil.Process().memory_info().rss, {})]],
-        description="Memory usage in bytes (RSS)",
-        unit="bytes"
-    )
-    memory_percent_gauge = meter.create_observable_gauge(
-        f"{SERVICE_NAME.replace('-', '_')}_memory_usage_percent",
-        callbacks=[lambda options: [(psutil.Process().memory_percent(), {})]],
-        description="Memory usage percentage",
-        unit="%"
-    )
-    thread_count_gauge = meter.create_observable_gauge(
-        f"{SERVICE_NAME.replace('-', '_')}_thread_count",
-        callbacks=[lambda options: [(threading.active_count(), {})]],
-        description="Number of active threads"
-    )
 
     # Setup Logging with trace context injection
     print("Setting up logging...", flush=True)
@@ -170,7 +143,6 @@ data:
     print(f"  OTEL Endpoint: {OTEL_ENDPOINT}", flush=True)
     print(f"  Request Interval: {REQUEST_INTERVAL_SEC}s", flush=True)
     print(f"  Exemplars: ENABLED (metrics linked to traces)", flush=True)
-    print(f"  System Metrics: CPU, Memory, Threads", flush=True)
     print(f"========================================", flush=True)
     print(f"", flush=True)
     print(f"To view correlated telemetry in SigNoz:", flush=True)
@@ -252,7 +224,7 @@ spec:
         args:
           - |
             pip install --quiet opentelemetry-api opentelemetry-sdk \
-              opentelemetry-exporter-otlp-proto-grpc psutil && \
+              opentelemetry-exporter-otlp-proto-grpc && \
             python -u /scripts/generator.py
         env:
         # Ensure unbuffered Python output
