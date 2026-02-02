@@ -175,15 +175,18 @@ data:
         type: remap
 
     sinks:
-      # Send logs to OTEL Collector via OTLP
+      # Send logs to OTEL Collector via HTTP
       otel_collector:
-        type: opentelemetry
+        type: http
         inputs:
           - remap_common
-        endpoint: "http://otel-collector:4317"
-        protocol:
-          type: grpc
+        uri: "http://otel-collector:4318/v1/logs"
+        method: post
+        encoding:
+          codec: json
         compression: gzip
+        headers:
+          Content-Type: "application/json"
 ---
 apiVersion: apps/v1
 kind: DaemonSet
