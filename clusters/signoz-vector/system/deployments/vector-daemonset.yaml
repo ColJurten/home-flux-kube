@@ -161,20 +161,31 @@ data:
         type: kubernetes_logs
 
     transforms:
-      parse_json:
-        type: remap
-        inputs: [kubernetes_logs]
+      remap_common:
+        inputs:
+        - kubernetes_logs
         source: |
-          . = parse_json!(.message)
+          .audience = "itsffr"
+          .source = "itsf-devglxcore-prd"
+          .kubernetes.host = .kubernetes.pod_node_name
+          .tag = "kub.itsf.kaas.prd"
+          .env = "prd"
+          del(.file)
+        type: remap
 
     sinks:
-      otlp:
-        type: otlp
-        inputs: [parse_json]
-        endpoint: "otel-collector.signoz-vector.svc.cluster.local:4317"
-        encoding:
-          codec: json
-        # You may need to adjust endpoint and encoding for your OTel collector
+      vector_out:
+        address: vip-logfluentd-p.prod.lan:8224 # WIP Setting up OTEL Collector - change later
+        buffer:
+          max_size: 8589934592
+          type: disk
+        compression: true
+        inputs:
+        - remap_common
+        tls:
+          enabled: true
+          verify_certificate: false
+        type: vector
 ---
 apiVersion: apps/v1
 kind: DaemonSet
