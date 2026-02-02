@@ -171,11 +171,11 @@ config:
           value: "otel-collector"
           action: upsert
   receivers:
-    # Syslog receiver for logs from Vector
-    syslog:
-      tcp:
-        listen_address: ${env:MY_POD_IP}:5514
-      protocol: rfc5424
+    # TCP log receiver for logs from Vector (accepts JSON)
+    tcplog:
+      listen_address: ${env:MY_POD_IP}:5514
+      operators:
+        - type: json_parser
     # Jaeger receiver for traces
     jaeger:
       protocols:
@@ -237,11 +237,11 @@ config:
     extensions:
       - health_check
     pipelines:
-      # Logs pipeline - receives from Vector via syslog, exports to SigNoz
+      # Logs pipeline - receives from Vector via tcplog, exports to SigNoz
       logs:
         receivers:
           - otlp
-          - syslog
+          - tcplog
         processors:
           - memory_limiter
           - resource
