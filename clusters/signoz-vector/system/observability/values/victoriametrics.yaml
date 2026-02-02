@@ -32,6 +32,7 @@ victoria-metrics-operator:
       image:
         repository: rancher/kubectl
         pullPolicy: IfNotPresent
+        tag: v1.35.0-arm64
   serviceMonitor:
     enabled: true
   operator:
