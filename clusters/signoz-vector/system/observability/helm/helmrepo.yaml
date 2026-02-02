@@ -1,12 +1,12 @@
-# apiVersion: source.toolkit.fluxcd.io/v1beta2
-# kind: HelmRepository
-# metadata:
-#   name: otel-collector-repo
-#   namespace: signoz-vector
-# spec:
-#   interval: 30m
-#   url: https://open-telemetry.github.io/opentelemetry-helm-charts
-# ---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: otel-collector-repo
+  namespace: signoz-vector
+spec:
+  interval: 30m
+  url: https://open-telemetry.github.io/opentelemetry-helm-charts
+---
 
 apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: HelmRepository
