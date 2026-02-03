@@ -6,7 +6,7 @@ nameOverride: ""
 fullnameOverride: "otel-collector"
 
 # Valid values are "daemonset", "deployment", and "statefulset".
-mode: "deployment"
+mode: "daemonset"
 
 # Specify which namespace should be used to deploy the resources into
 namespaceOverride: "signoz-vector"
@@ -61,7 +61,7 @@ presets:
   # Best used with mode = daemonset.
   # See https://opentelemetry.io/docs/kubernetes/collector/components/#kubeletstats-receiver for details on the receiver.
   kubeletMetrics:
-    enabled: false
+    enabled: true
   # Configures the collector to collect kubernetes events.
   # Adds the k8sobjects receiver to the logs pipeline
   # and collects kubernetes events by default.
