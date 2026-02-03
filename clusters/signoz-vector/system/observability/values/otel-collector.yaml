@@ -225,6 +225,22 @@ config:
             metrics_path: /metrics
     zipkin:
       endpoint: ${env:MY_POD_IP}:9411
+    # Kubelet stats receiver for pod CPU/RAM/disk metrics (requires kubeletMetrics preset)
+    kubeletstats:
+      collection_interval: 10s
+      auth_type: serviceAccount
+      endpoint: "https://${env:K8S_NODE_NAME}:10250"
+      insecure_skip_verify: true
+      metric_groups:
+        - node
+        - pod
+        - container
+        - volume
+      extra_metadata_labels:
+        - container.id
+        - k8s.volume.type
+      k8s_api_config:
+        auth_type: serviceAccount
   service:
     telemetry:
       metrics:
@@ -244,18 +260,21 @@ config:
           - tcplog
         processors:
           - memory_limiter
+          - k8sattributes
           - resource
           - batch
         exporters:
           - otlp
           - debug
-      # Metrics pipeline - scrapes VictoriaMetrics, exports to SigNoz
+      # Metrics pipeline - scrapes VictoriaMetrics + kubelet stats, exports to SigNoz
       metrics:
         receivers:
           - otlp
           - prometheus
+          - kubeletstats
         processors:
           - memory_limiter
+          - k8sattributes
           - resource
           - batch
         exporters:
@@ -269,6 +288,7 @@ config:
           - zipkin
         processors:
           - memory_limiter
+          - k8sattributes
           - resource
           - batch
         exporters:
@@ -367,7 +387,12 @@ priorityClassName: ""
 # Also useful for the pod security admissions plugins that rely on runtimeClassName
 runtimeClassName: ""
 
-extraEnvs: []
+# Extra environment variables for kubeletstats receiver
+extraEnvs:
+  - name: K8S_NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
 extraEnvsFrom: []
 # This also supports template content, which will eventually be converted to yaml.
 extraVolumes: []
