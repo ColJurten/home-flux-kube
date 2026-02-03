@@ -342,7 +342,7 @@ clusterRole:
   # Specifies whether a clusterRole should be created
   # Some presets also trigger the creation of a cluster role and cluster role binding.
   # If using one of those presets, this field is no-op.
-  create: false
+  create: true
   # Annotations to add to the clusterRole
   # Can be used in combination with presets that create a cluster role.
   annotations: {}
@@ -352,16 +352,25 @@ clusterRole:
   name: ""
   # A set of rules as documented here : https://kubernetes.io/docs/reference/access-authn-authz/rbac/
   # Can be used in combination with presets that create a cluster role to add additional rules.
-  rules: []
-  # - apiGroups:
-  #   - ''
-  #   resources:
-  #   - 'pods'
-  #   - 'nodes'
-  #   verbs:
-  #   - 'get'
-  #   - 'list'
-  #   - 'watch'
+  # Rules for kubeletstats receiver to access kubelet API
+  rules:
+    - apiGroups:
+        - ""
+      resources:
+        - nodes/proxy
+        - nodes/stats
+      verbs:
+        - get
+    - apiGroups:
+        - ""
+      resources:
+        - nodes
+        - pods
+        - namespaces
+      verbs:
+        - get
+        - list
+        - watch
 
   clusterRoleBinding:
     # Annotations to add to the clusterRoleBinding
