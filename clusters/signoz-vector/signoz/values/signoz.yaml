@@ -59,7 +59,8 @@ clickhouse:
   # clickhouse.enabled -- Whether to install ClickHouse. If false, `clickhouse.host` must be set.
   # @section -- ClickHouse Settings
   # @default -- true
-  enabled: true
+  # Disabled to use external Bitnami ClickHouse instance
+  enabled: false
   # clickhouse.zookeeper -- Zookeeper default values.
   # Ref: https://github.com/bitnami/charts/blob/main/bitnami/zookeeper/values.yaml
   # @ignored
@@ -700,11 +701,11 @@ clickhouse:
 # @section -- External ClickHouse
 externalClickhouse:
   # externalClickhouse.host - Host of the external ClickHouse cluster.
-  # @default -- null
-  host:
+  # Points to the Bitnami ClickHouse service in the same namespace
+  host: clickhouse-signoz
   # externalClickhouse.cluster - Name of the external cluster to run DDL queries on.
-  # @default -- "cluster"
-  cluster: cluster
+  # Must match the clusterName in clickhouse.yaml (Bitnami chart)
+  cluster: default
   # externalClickhouse.database - Database name for the external cluster.
   # @default -- "signoz_metrics"
   database: signoz_metrics
@@ -718,28 +719,27 @@ externalClickhouse:
   # @default -- "signoz_meter"
   meterDatabase: signoz_meter
   # externalClickhouse.user - Username to connect to the external cluster.
-  # @default -- ""
-  user: ""
+  # Matches auth.username in clickhouse.yaml (Bitnami chart)
+  user: "default"
   # externalClickhouse.password - Password for the external cluster. Ignored if `externalClickhouse.existingSecret` is set.
-  # @default -- ""
+  # For production, use existingSecret instead of plaintext password
   password: ""
   # externalClickhouse.existingSecret - Name of an existing Kubernetes secret containing the password.
-  # @default -- null
-  existingSecret:
+  # Reference the Bitnami ClickHouse auto-generated secret
+  existingSecret: clickhouse-signoz
   # externalClickhouse.existingSecretPasswordKey - Key in the existing secret that contains the password.
-  # @default -- null
-  existingSecretPasswordKey:
+  existingSecretPasswordKey: admin-password
   # externalClickhouse.secure - Whether to use a TLS connection when connecting to ClickHouse.
-  # @default -- false
+  # Set to true if TLS is enabled in clickhouse.yaml
   secure: false
   # externalClickhouse.verify - Whether to verify the TLS certificate on connection to ClickHouse.
   # @default -- false
   verify: false
   # externalClickhouse.httpPort - HTTP port of the external ClickHouse instance.
-  # @default -- 8123
+  # Matches containerPorts.http in clickhouse.yaml
   httpPort: 8123
   # externalClickhouse.tcpPort - TCP port of the external ClickHouse instance.
-  # @default - 9000
+  # Matches containerPorts.tcp in clickhouse.yaml
   tcpPort: 9000
 # signoz -- Default values for SigNoz.
 # @section -- SigNoz

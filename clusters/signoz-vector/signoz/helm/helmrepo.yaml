@@ -7,5 +7,11 @@ spec:
   interval: 30m
   url: https://charts.signoz.io
 ---
-
-
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: clickhouse-repo
+  namespace: signoz-vector
+spec:
+  interval: 30m
+  url: https://charts.bitnami.com/bitnami

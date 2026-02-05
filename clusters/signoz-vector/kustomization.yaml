@@ -30,3 +30,6 @@ configMapGenerator:
 - name: victoriametrics-values
   files:
   - values.yaml=system/observability/values/victoriametrics.yaml
+- name: clickhouse-values
+  files:
+  - values.yaml=signoz/values/clickhouse.yaml

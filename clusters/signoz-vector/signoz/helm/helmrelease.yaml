@@ -16,3 +16,25 @@ spec:
   valuesFrom:
     - kind: ConfigMap
       name: signoz-values
+  dependsOn:
+    - name: clickhouse-signoz
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: clickhouse-signoz
+  namespace: signoz-vector
+spec:
+  interval: 1m
+  timeout: 10m0s
+  chart:
+    spec:
+      chart: clickhouse
+      version: 9.4.4
+      sourceRef:
+        kind: HelmRepository
+        name: clickhouse-repo
+  valuesFrom:
+    - kind: ConfigMap
+      name: clickhouse-values
+---
