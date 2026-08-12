@@ -17,7 +17,7 @@ public class DummyOtelLogGen {
     public static void main(String[] args) throws InterruptedException {
         // LOGS
         OtlpGrpcLogRecordExporter logExporter = OtlpGrpcLogRecordExporter.builder()
-            .setEndpoint("http://signoz-otel-collector.signoz-vector.svc.cluster.local:4317")
+            .setEndpoint("http://signoz-otel-collector.signoz-test.svc.cluster.local:4317")
             .build();
         SdkLoggerProvider sdkLoggerProvider = SdkLoggerProvider.builder()
             .addLogRecordProcessor(BatchLogRecordProcessor.builder(logExporter).build())
@@ -28,7 +28,7 @@ public class DummyOtelLogGen {
 
         // TRACES
         io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter traceExporter = io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter.builder()
-            .setEndpoint("http://signoz-otel-collector.signoz-vector.svc.cluster.local:4317")
+            .setEndpoint("http://signoz-otel-collector.signoz-test.svc.cluster.local:4317")
             .build();
         io.opentelemetry.sdk.trace.SdkTracerProvider tracerProvider = io.opentelemetry.sdk.trace.SdkTracerProvider.builder()
             .addSpanProcessor(io.opentelemetry.sdk.trace.export.BatchSpanProcessor.builder(traceExporter).build())
@@ -40,7 +40,7 @@ public class DummyOtelLogGen {
 
         // METRICS
         io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter metricExporter = io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter.builder()
-            .setEndpoint("http://signoz-otel-collector.signoz-vector.svc.cluster.local:4317")
+            .setEndpoint("http://signoz-otel-collector.signoz-test.svc.cluster.local:4317")
             .build();
         io.opentelemetry.sdk.metrics.SdkMeterProvider meterProvider = io.opentelemetry.sdk.metrics.SdkMeterProvider.builder()
             .registerMetricReader(io.opentelemetry.sdk.metrics.export.PeriodicMetricReader.builder(metricExporter).build())
@@ -78,7 +78,7 @@ public class DummyOtelLogGen {
                 .setAttribute(AttributeKey.stringKey("service.name"), service)
                 .setAttribute(AttributeKey.longKey("http.status_code"), (long) code)
                 .setAttribute(AttributeKey.longKey("event.duration_ms"), (long) dur)
-                .setAttribute(AttributeKey.stringKey("k8s.namespace"), "signoz-vector")
+                .setAttribute(AttributeKey.stringKey("k8s.namespace"), "signoz-test")
                 .setAttribute(AttributeKey.stringKey("k8s.app"), "log-generator")
                 .setAttribute(AttributeKey.longKey("seq"), (long) i)
                 .setAttribute(AttributeKey.stringKey("trace_id"), span.getSpanContext().getTraceId())
@@ -94,7 +94,7 @@ public class DummyOtelLogGen {
             // METRIC
             requestCounter.add(1, io.opentelemetry.api.common.Attributes.of(
                 AttributeKey.stringKey("service.name"), service,
-                AttributeKey.stringKey("k8s.namespace"), "signoz-vector"
+                AttributeKey.stringKey("k8s.namespace"), "signoz-test"
             ));
 
             i++;

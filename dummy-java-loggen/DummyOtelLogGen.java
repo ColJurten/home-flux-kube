@@ -32,7 +32,7 @@ public class DummyOtelLogGen {
                     .setAttribute("service.name", service)
                     .setAttribute("http.status_code", code)
                     .setAttribute("event.duration_ms", dur)
-                    .setAttribute("k8s.namespace", "signoz-vector")
+                    .setAttribute("k8s.namespace", "signoz-test")
                     .setAttribute("k8s.app", "log-generator")
                     .setAttribute("seq", i);
             logRecord.emit();

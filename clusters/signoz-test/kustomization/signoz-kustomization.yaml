@@ -1,11 +1,11 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: signoz-test
-  namespace: flux-system
+  name: signoz
+  namespace: signoz-test
 spec:
   interval: 30s
-  path: ./clusters/signoz-test
+  path: ./clusters/signoz-test/signoz
   prune: true
   sourceRef:
     kind: GitRepository

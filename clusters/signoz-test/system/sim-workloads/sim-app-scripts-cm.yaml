@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sim-app-scripts
+  namespace: obs-sim
+  labels:
+    app: sim-app
+    app.kubernetes.io/part-of: obs-sim
+data:
+  entrypoint.sh: |
+    #!/bin/sh
+    set -e
+    echo "Installing redis client..." >&2
+    pip install --quiet --no-cache-dir "redis>=5.0.0"
+    echo "Starting sim-app..." >&2
+    exec python /scripts/sim_app.py
+
+  sim_app.py: |
+    #!/usr/bin/env python3
+    """
+    Simulation app: write/read/delete loops against Redis.
+    No OTel SDK -- traces will be collected via eBPF (Beyla / opentelemetry-ebpf-instrumentation).
+    Logs are structured key=value to stdout for collection by the filelog receiver.
+    """
+    import os
+    import sys
+    import time
+    import random
+    import logging
+    import redis as redis_lib
+
+    SERVICE_NAME   = os.getenv("SERVICE_NAME",   "sim-app")
+    K8S_NAMESPACE  = os.getenv("K8S_NAMESPACE",  "obs-sim")
+    K8S_POD_NAME   = os.getenv("POD_NAME",       "unknown")
+    K8S_NODE_NAME  = os.getenv("NODE_NAME",      "unknown")
+    REDIS_HOST     = os.getenv("REDIS_HOST",      "redis-db.obs-sim.svc.cluster.local")
+    REDIS_PORT     = int(os.getenv("REDIS_PORT", "6379"))
+    LOOP_INTERVAL  = float(os.getenv("LOOP_INTERVAL_SEC", "2.0"))
+
+
+    class _KVFormatter(logging.Formatter):
+        """Structured key=value lines parseable by the OTel filelog receiver."""
+        def format(self, record: logging.LogRecord) -> str:
+            return (
+                f"time={self.formatTime(record, '%Y-%m-%dT%H:%M:%S')} "
+                f"level={record.levelname} "
+                f"service={SERVICE_NAME} "
+                f"pod={K8S_POD_NAME} "
+                f"msg={record.getMessage()}"
+            )
+
+
+    _h = logging.StreamHandler(sys.stdout)
+    _h.setFormatter(_KVFormatter())
+    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().addHandler(_h)
+    logger = logging.getLogger(SERVICE_NAME)
+
+
+    def _connect() -> redis_lib.Redis:
+        for attempt in range(1, 11):
+            try:
+                r = redis_lib.Redis(
+                    host=REDIS_HOST, port=REDIS_PORT,
+                    decode_responses=True, socket_connect_timeout=5,
+                )
+                r.ping()
+                logger.info("redis.connected host=%s port=%d", REDIS_HOST, REDIS_PORT)
+                return r
+            except Exception as exc:
+                logger.warning("redis.retry attempt=%d/10 error=%s", attempt, exc)
+                time.sleep(min(5 * attempt, 30))
+        raise RuntimeError("Could not connect to Redis after 10 attempts")
+
+
+    db = _connect()
+    logger.info("sim-app ready service=%s redis=%s:%d", SERVICE_NAME, REDIS_HOST, REDIS_PORT)
+
+    cycle = 0
+    while True:
+        cycle += 1
+        key      = f"sim:key:{cycle % 50}"
+        value    = f"payload-{cycle}-{random.randint(100, 999)}"
+        is_slow  = (cycle % 10 == 0)
+        is_error = (cycle % 25 == 0)
+        scenario = "error" if is_error else ("slow" if is_slow else "normal")
+
+        try:
+            # WRITE
+            t0 = time.monotonic()
+            if is_slow:
+                time.sleep(0.5)
+            db.set(key, value, ex=120)
+            dur = (time.monotonic() - t0) * 1000
+            logger.info("db.write cycle=%d key=%s dur_ms=%.1f scenario=%s", cycle, key, dur, scenario)
+
+            # READ
+            t0 = time.monotonic()
+            result = db.get(key)
+            dur = (time.monotonic() - t0) * 1000
+            logger.info("db.read cycle=%d key=%s found=%s dur_ms=%.1f", cycle, key, result is not None, dur)
+
+            # DELETE
+            t0 = time.monotonic()
+            if is_error:
+                ghost = f"sim:missing:{cycle}"
+                deleted = db.delete(ghost)
+                dur = (time.monotonic() - t0) * 1000
+                if deleted == 0:
+                    raise KeyError(f"key_not_found key={ghost}")
+            else:
+                db.delete(key)
+                dur = (time.monotonic() - t0) * 1000
+            logger.info("db.delete cycle=%d key=%s dur_ms=%.1f", cycle, key, dur)
+
+        except KeyError as exc:
+            logger.error("sim.error cycle=%d type=key_not_found msg=%s", cycle, exc)
+        except redis_lib.RedisError as exc:
+            logger.error("sim.error cycle=%d type=redis_error msg=%s", cycle, exc)
+            time.sleep(5)
+
+        if cycle % 25 == 0:
+            logger.info("sim.checkpoint cycle=%d", cycle)
+
+        time.sleep(LOOP_INTERVAL)

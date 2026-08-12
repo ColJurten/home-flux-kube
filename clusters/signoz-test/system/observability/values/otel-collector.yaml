@@ -1,0 +1,225 @@
+mode: daemonset
+image:
+  repository: "jfrog-artifactory.steelhome.internal/itsffr-docker/otel/opentelemetry-collector-k8s"
+  pullPolicy: IfNotPresent
+  tag: "0.153.0"
+imagePullSecrets:
+- name: jfrog-docker-creds
+command:
+  name: otelcol-k8s
+nameOverride: otel-agent
+namespaceOverride: "itsf-monitoring"
+
+presets:
+  kubernetesAttributes:
+    enabled: true
+  kubeletMetrics:
+    enabled: true
+  clusterMetrics:
+    enabled: true
+  kubernetesEvents:
+    enabled: true
+
+securityContext:
+  runAsUser: 0
+
+serviceAccount:
+  create: true
+  name: otel-agent-deamonset
+
+clusterRole:
+  name: otel-agent-deamonset
+  rules:
+  - apiGroups: [ "" ]
+    resources: [ nodes/proxy ]
+    verbs: [ get ]
+
+extraEnvs:
+- name: CLUSTER_NAME
+  value: itsf-tooling-prd
+
+extraVolumes:
+- name: hostfs
+  hostPath:
+    path: /
+    type: Directory
+- name: varlogpods
+  hostPath:
+    path: /var/log/pods
+- name: otelcol-state
+  hostPath:
+    path: /var/lib/otelcol
+    type: DirectoryOrCreate
+extraVolumeMounts:
+- name: hostfs
+  mountPath: /hostfs
+  readOnly: true
+- name: varlogpods
+  mountPath: /var/log/pods
+  readOnly: true
+- name: otelcol-state
+  mountPath: /var/lib/otelcol
+
+resources:
+  requests: { cpu: 100m, memory: 128Mi }
+  limits: { cpu: 500m, memory: 1Gi }
+
+config:
+  extensions:
+    file_storage:
+      directory: /var/lib/otelcol
+  receivers:
+    filelog:
+      storage: file_storage
+      include:
+      - /var/log/pods/*/*/*.log
+      exclude:
+      # collector's own logs (feedback loop)
+      - /var/log/pods/itsf-monitoring_monitoring-deamonset*/*/*.log
+      # tool namespaces (common to all clusters)
+      - /var/log/pods/argo-cd_*/*/*.log
+      - /var/log/pods/cattle-fleet-system_*/*/*.log
+      - /var/log/pods/cattle-impersonation-system_*/*/*.log
+      - /var/log/pods/cattle-local-user-passwords_*/*/*.log
+      - /var/log/pods/cattle-system_*/*/*.log
+      - /var/log/pods/cert-manager_*/*/*.log
+      - /var/log/pods/cilium-secrets_*/*/*.log
+      - /var/log/pods/external-dns_*/*/*.log
+      - /var/log/pods/flux-alerts_*/*/*.log
+      - /var/log/pods/kube-node-lease_*/*/*.log
+      - /var/log/pods/kube-public_*/*/*.log
+      - /var/log/pods/kube-system_*/*/*.log
+      - /var/log/pods/local_*/*/*.log
+      - /var/log/pods/logging_*/*/*.log
+      - /var/log/pods/metrology_*/*/*.log
+      - /var/log/pods/metrology-operator_*/*/*.log
+      - /var/log/pods/rbac-manager_*/*/*.log
+      - /var/log/pods/trident_*/*/*.log
+      start_at: end
+      include_file_path: true
+      retry_on_failure:
+        enabled: true
+      operators:
+      - id: container-parser
+        type: container
+    kubeletstats:
+      auth_type: serviceAccount
+      collection_interval: 20s
+      endpoint: ${env:K8S_NODE_IP}:10250
+      extra_metadata_labels:
+      - container.id
+      k8s_api_config:
+        auth_type: serviceAccount
+      metric_groups:
+      - node
+      - pod
+      - container
+      - volume
+      metrics:
+        k8s.pod.cpu_request_utilization:
+          enabled: true
+        k8s.pod.cpu_limit_utilization:
+          enabled: true
+        k8s.pod.memory_request_utilization:
+          enabled: true
+        k8s.pod.memory_limit_utilization:
+          enabled: true
+        container.cpu.usage:
+          enabled: true
+        k8s.container.cpu_request_utilization:
+          enabled: true
+        k8s.container.cpu_limit_utilization:
+          enabled: true
+        k8s.container.memory_request_utilization:
+          enabled: true
+    hostmetrics:
+      collection_interval: 20s
+      root_path: /hostfs
+      scrapers:
+        cpu: {}
+        memory: {}
+        disk: {}
+        filesystem: {}
+        network: {}
+    k8sobjects:
+      k8s_leader_elector: k8s_leader_elector/k8s_cluster
+      objects:
+      - name: events
+        mode: watch
+        group: events.k8s.io
+        exclude_watch_type:
+        - DELETED
+  processors:
+    memory_limiter:
+      check_interval: 5s
+      limit_percentage: 80
+      spike_limit_percentage: 25
+    k8sattributes:
+      filter:
+        node_from_env_var: K8S_NODE_NAME
+      pod_association:
+      - sources:
+        - from: resource_attribute
+          name: k8s.pod.ip
+      - sources:
+        - from: resource_attribute
+          name: k8s.pod.uid
+    resource:
+      attributes:
+      - key: k8s.cluster.name
+        value: ${env:CLUSTER_NAME}
+        action: upsert
+    filter/drop_normal_events:
+      error_mode: ignore
+      logs:
+        log_record:
+        - 'body["object"]["type"] == "Normal"'
+    transform/k8s_events:
+      error_mode: ignore
+      log_statements:
+      - context: log
+        statements:
+        # correlation keys 
+        - set(resource.attributes["k8s.namespace.name"], body["object"]["regarding"]["namespace"]) where body["object"]["regarding"]["namespace"] != nil
+        - set(resource.attributes["k8s.object.kind"],     body["object"]["regarding"]["kind"])      where body["object"]["regarding"]["kind"] != nil
+        - set(resource.attributes["k8s.object.name"],     body["object"]["regarding"]["name"])      where body["object"]["regarding"]["name"] != nil
+        - set(resource.attributes["k8s.pod.name"],        body["object"]["regarding"]["name"])      where body["object"]["regarding"]["kind"] == "Pod"
+        - set(resource.attributes["k8s.pod.uid"],         body["object"]["regarding"]["uid"])       where body["object"]["regarding"]["kind"] == "Pod"
+        - set(resource.attributes["k8s.node.name"],       body["object"]["regarding"]["name"])      where body["object"]["regarding"]["kind"] == "Node"
+        - set(attributes["k8s.event.reason"],             body["object"]["reason"])                 where body["object"]["reason"] != nil
+        - set(attributes["k8s.event.note"],               body["object"]["note"])                   where body["object"]["note"] != nil
+        - set(attributes["k8s.event.type"],               body["object"]["type"])                   where body["object"]["type"] != nil
+        - set(severity_text, "WARN") where body["object"]["type"] == "Warning"
+        - set(severity_text, "INFO") where body["object"]["type"] == "Normal"
+        # readability attributes
+        - set(attributes["k8s.event.reason"], body["object"]["reason"])             where body["object"]["reason"] != nil
+        - set(attributes["k8s.event.note"],   body["object"]["note"])               where body["object"]["note"] != nil
+        - set(attributes["k8s.event.type"],   body["object"]["type"])               where body["object"]["type"] != nil
+        - set(attributes["k8s.event.count"],  body["object"]["deprecatedCount"])    where body["object"]["deprecatedCount"] != nil
+        - set(attributes["k8s.event.source"], body["object"]["reportingController"]) where body["object"]["reportingController"] != nil
+        - set(attributes["k8s.event.action"], body["object"]["action"])             where body["object"]["action"] != nil
+        - set(severity_text, "WARN") where body["object"]["type"] == "Warning"
+        - set(severity_text, "INFO") where body["object"]["type"] == "Normal"
+        # readable body — MUST stay last; it overwrites the map every statement above reads
+        - 'set(body, Concat([body["object"]["reason"], body["object"]["note"]], ": ")) where body["object"]["note"] != nil'
+    batch: {}
+  exporters:
+    otlphttp/signoz:
+      endpoint: https://infra-signoz-otel-collector.rke-itsf-tools-prd.itsf.io:443 ## TO BE MODIFIED
+  service:
+    extensions: [ file_storage, health_check ]
+    pipelines:
+      traces: null
+      logs: null
+      logs/k8s_events:
+        receivers: [ k8sobjects ]
+        processors: [ memory_limiter, filter/drop_normal_events, transform/k8s_events, k8sattributes, resource, batch ]
+        exporters: [ otlphttp/signoz ]
+      logs/containers:
+        receivers: [ filelog ]
+        processors: [ memory_limiter, k8sattributes, resource, batch ]
+        exporters: [ otlphttp/signoz ]
+      metrics:
+        receivers: [ kubeletstats, hostmetrics, k8s_cluster ]
+        processors: [ memory_limiter, k8sattributes, resource, batch ]
+        exporters: [ otlphttp/signoz ]

@@ -2,7 +2,7 @@ apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: HelmRepository
 metadata:
   name: signoz-repo
-  namespace: signoz-vector
+  namespace: signoz-test
 spec:
   interval: 30m
   url: https://charts.signoz.io
@@ -11,7 +11,7 @@ apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: HelmRepository
 metadata:
   name: clickhouse-repo
-  namespace: signoz-vector
+  namespace: signoz-test
 spec:
   type: oci
   interval: 30m

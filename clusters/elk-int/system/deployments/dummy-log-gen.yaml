@@ -19,7 +19,7 @@ spec:
         imagePullPolicy: Always
         env:
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
-          value: "http://otel-collector.signoz-vector.svc.cluster.local:4317"
+          value: "http://otel-collector.signoz-test.svc.cluster.local:4317"
         - name: OTEL_SERVICE_NAME
           value: "dummy-java-loggen"
         ports:

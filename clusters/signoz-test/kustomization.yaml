@@ -1,16 +1,16 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: signoz-vector
+namespace: signoz-test
 
 resources:
 - kustomization/system-kustomization.yaml
 - kustomization/signoz-kustomization.yaml
+- kustomization/sim-workloads-kustomization.yaml
 - signoz/helm/helmrepo.yaml
 - signoz/helm/helmrelease.yaml
-- system/observability/helm/helmrepo.yaml
-- system/observability/helm/helmrelease.yaml
-- system/observability/daemonset/vector-daemonset.yaml
+# - system/observability/helm/helmrepo.yaml
+# - system/observability/helm/helmrelease.yaml
 - system/deployments/dummy-log-gen.yaml
 - system/namespace.yaml
 
@@ -24,12 +24,6 @@ configMapGenerator:
 - name: otel-collector-values
   files:
   - values.yaml=system/observability/values/otel-collector.yaml
-- name: jaeger-values
-  files:
-  - values.yaml=system/observability/values/jaeger.yaml
-- name: victoriametrics-values
-  files:
-  - values.yaml=system/observability/values/victoriametrics.yaml
 - name: clickhouse-values
   files:
   - values.yaml=signoz/values/clickhouse.yaml
