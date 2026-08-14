@@ -1392,7 +1392,8 @@ otelCollector:
   # otelCollector.additionalEnvs -- Additional environment variables for the Otel Collector.
   # @section -- Otel Collector
   # @default -- {}
-  additionalEnvs: {}
+  additionalEnvs:
+    GOMEMLIMIT: "3400MiB"
   # env_key: env_value
 
   # otelCollector.lowCardinalityExceptionGrouping -- Whether to enable grouping of exceptions with the same name but different stack traces. This is a tradeoff between cardinality and accuracy.
@@ -1410,7 +1411,7 @@ otelCollector:
   # otelCollector.replicaCount -- The number of pod replicas for the Otel Collector.
   # @section -- Otel Collector
   # @default -- 1
-  replicaCount: 1
+  replicaCount: 3
   # otelCollector.clusterRole -- RBAC ClusterRole configuration for the Otel Collector.
   # @section -- Otel Collector
   # @default -- "Please checkout the default values in values.yml"
@@ -1731,9 +1732,8 @@ otelCollector:
   # @section -- Otel Collector
   # @default -- { requests: { cpu: "100m", memory: "200Mi" } }
   resources:
-    requests:
-      cpu: 100m
-      memory: 200Mi
+    requests: { cpu: "1", memory: 2Gi }
+    limits:   { cpu: "2", memory: 4Gi }
   #   limits:
   #     cpu: "1"
   #     memory: 2Gi
@@ -1741,7 +1741,7 @@ otelCollector:
   # otelCollector.priorityClassName -- Priority class for the Otel Collector pods.
   # @section -- Otel Collector
   # @default -- ""
-  priorityClassName: ""
+  priorityClassName: system-cluster-critical
   # otelCollector.nodeSelector -- Node selector for pod assignment.
   # @section -- Otel Collector
   # @default -- {}
@@ -1875,16 +1875,14 @@ otelCollector:
         endpoint: 0.0.0.0:8082
         source: json
     processors:
+      memory_limiter:
+        check_interval: 2s
+        limit_percentage: 75
+        spike_limit_percentage: 15
       batch:
         send_batch_size: 50000
+        send_batch_max_size: 50000
         timeout: 1s
-      batch/meter:
-        send_batch_max_size: 25000
-        send_batch_size: 20000
-        timeout: 1s
-      # Memory Limiter processor. If not set, it will be overridden with values based on k8s resource limits.
-      # ref: https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/memorylimiterprocessor/README.md
-      # memory_limiter: null
       signozspanmetrics/delta:
         metrics_exporter: signozclickhousemetrics
         latency_histogram_buckets: [100us, 1ms, 2ms, 6ms, 10ms, 50ms, 100ms, 250ms, 500ms, 1000ms, 1400ms, 2000ms, 5s, 10s, 20s, 40s, 60s]
@@ -1908,13 +1906,37 @@ otelCollector:
         datasource: tcp://${env:CLICKHOUSE_USER}:${env:CLICKHOUSE_PASSWORD}@${env:CLICKHOUSE_HOST}:${env:CLICKHOUSE_PORT}/${env:CLICKHOUSE_TRACE_DATABASE}
         low_cardinal_exception_grouping: ${env:LOW_CARDINAL_EXCEPTION_GROUPING}
         use_new_schema: true
+        timeout: 30s
+        sending_queue:
+          enabled: true
+          queue_size: 1000
+          num_consumers: 4
+        retry_on_failure:
+          enabled: true
+          max_elapsed_time: 120s
       signozclickhousemetrics:
         dsn: tcp://${env:CLICKHOUSE_USER}:${env:CLICKHOUSE_PASSWORD}@${env:CLICKHOUSE_HOST}:${env:CLICKHOUSE_PORT}/${env:CLICKHOUSE_DATABASE}
         timeout: 45s
+        sending_queue:
+          enabled: true
+          queue_size: 500
+          num_consumers: 4
+        retry_on_failure:
+          enabled: true
+          max_elapsed_time: 120s
       clickhouselogsexporter:
         dsn: tcp://${env:CLICKHOUSE_USER}:${env:CLICKHOUSE_PASSWORD}@${env:CLICKHOUSE_HOST}:${env:CLICKHOUSE_PORT}/${env:CLICKHOUSE_LOG_DATABASE}
-        timeout: 10s
+        timeout: 30s
         use_new_schema: true
+        sending_queue:
+          enabled: true
+          queue_size: 1000
+          num_consumers: 4
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+          max_elapsed_time: 120s
       metadataexporter:
         dsn: tcp://${env:CLICKHOUSE_USER}:${env:CLICKHOUSE_PASSWORD}@${env:CLICKHOUSE_HOST}:${env:CLICKHOUSE_PORT}/signoz_metadata
         timeout: 10s
