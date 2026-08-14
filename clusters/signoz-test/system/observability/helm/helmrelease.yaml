@@ -11,7 +11,7 @@ spec:
       version: 0.158.0
       sourceRef:
         kind: HelmRepository
-        name: otel-collector-repo
+        name: otel-collector-repo-ds
   valuesFrom:
     - kind: ConfigMap
       name: otel-collector-values
