@@ -1741,7 +1741,7 @@ otelCollector:
   # otelCollector.priorityClassName -- Priority class for the Otel Collector pods.
   # @section -- Otel Collector
   # @default -- ""
-  priorityClassName: system-cluster-critical
+  priorityClassName: ""
   # otelCollector.nodeSelector -- Node selector for pod assignment.
   # @section -- Otel Collector
   # @default -- {}
