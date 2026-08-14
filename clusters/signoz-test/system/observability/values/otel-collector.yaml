@@ -8,7 +8,7 @@ imagePullSecrets:
 command:
   name: otelcol-k8s
 nameOverride: otel-agent
-namespaceOverride: "itsf-monitoring"
+# namespaceOverride: "itsf-monitoring"
 
 presets:
   kubernetesAttributes:
