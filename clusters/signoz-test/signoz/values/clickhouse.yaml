@@ -294,11 +294,11 @@ startdbScripts: {}
 startdbScriptsSecret: ""
 ## @param shards Number of ClickHouse shards to deploy
 ##
-shards: 0
+shards: 2
 ## @param replicaCount Number of ClickHouse replicas per shard to deploy
 ## if keeper enable, same as keeper count, keeper cluster by shards.
 ##
-replicaCount: 0
+replicaCount: 3
 ## @param distributeReplicasByZone Schedules replicas of the same shard to different availability zones
 ##
 distributeReplicasByZone: false
@@ -978,7 +978,7 @@ keeper:
     debug: false
   ## @param keeper.replicaCount Number of ClickHouse Keeper replicas to deploy
   ##
-  replicaCount: 0
+  replicaCount: 3
   ## @param keeper.configuration Specify content for ClickHouse Keeper configuration (basic one auto-generated based on other values otherwise)
   ##
   configuration: {}
