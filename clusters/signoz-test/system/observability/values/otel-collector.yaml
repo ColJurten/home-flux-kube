@@ -36,7 +36,7 @@ clusterRole:
 
 extraEnvs:
 - name: CLUSTER_NAME
-  value: itsf-tooling-prd
+  value: minikube-test
 
 extraVolumes:
 - name: hostfs
@@ -205,7 +205,7 @@ config:
     batch: {}
   exporters:
     otlphttp/signoz:
-      endpoint: https://infra-signoz-otel-collector.rke-itsf-tools-prd.itsf.io:443 ## TO BE MODIFIED
+      endpoint: signoz-otel-collector.signoz-test.svc.cluster.local:4318 ## TO BE MODIFIED
   service:
     extensions: [ file_storage, health_check ]
     pipelines:

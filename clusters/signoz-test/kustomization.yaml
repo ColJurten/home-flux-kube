@@ -9,8 +9,8 @@ resources:
 - kustomization/sim-workloads-kustomization.yaml
 - signoz/helm/helmrepo.yaml
 - signoz/helm/helmrelease.yaml
-# - system/observability/helm/helmrepo.yaml
-# - system/observability/helm/helmrelease.yaml
+- system/observability/helm/helmrepo.yaml
+- system/observability/helm/helmrelease.yaml
 - system/deployments/dummy-log-gen.yaml
 - system/namespace.yaml
 
