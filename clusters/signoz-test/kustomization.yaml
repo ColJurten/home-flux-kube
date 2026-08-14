@@ -11,7 +11,6 @@ resources:
 - signoz/helm/helmrelease.yaml
 - system/observability/helm/helmrepo.yaml
 - system/observability/helm/helmrelease.yaml
-- system/deployments/dummy-log-gen.yaml
 - system/namespace.yaml
 
 generatorOptions:
