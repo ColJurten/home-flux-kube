@@ -1,6 +1,6 @@
 mode: daemonset
 image:
-  repository: "jfrog-artifactory.steelhome.internal/itsffr-docker/otel/opentelemetry-collector-k8s"
+  repository: "otel/opentelemetry-collector-k8s"
   pullPolicy: IfNotPresent
   tag: "0.153.0"
 imagePullSecrets:
