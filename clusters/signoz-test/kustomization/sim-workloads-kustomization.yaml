@@ -1,13 +1,13 @@
-# apiVersion: kustomize.toolkit.fluxcd.io/v1
-# kind: Kustomization
-# metadata:
-#   name: sim-workloads
-#   namespace: flux-system
-# spec:
-#   interval: 30s
-#   path: ./clusters/signoz-test/system/sim-workloads
-#   prune: true
-#   sourceRef:
-#     kind: GitRepository
-#     name: flux-system
-#     namespace: flux-system
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: sim-workloads
+  namespace: flux-system
+spec:
+  interval: 30s
+  path: ./clusters/signoz-test/system/sim-workloads
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+    namespace: flux-system
